@@ -6479,6 +6479,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
 
 
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -7354,7 +7355,42 @@ function confirmarRefazerLancamentosFolha() {
   var corteStr = g('refazer-folha-corte') ? g('refazer-folha-corte').value : '';
   var dataCorte = corteStr ? new Date(corteStr + 'T00:00:00') : null;
 
-  // Temporariamente instala um filtro de data no gerarContasFolha:
+  // Limpar tombstones de lançamentos de folha para permitir recriação
+  DB._tombstones = DB._tombstones || {};
+  var tombstonesRemovidos = 0;
+  Object.keys(DB._tombstones).forEach(function(id) {
+    if (id.startsWith('folha-') || id.startsWith('encargos-') ||
+        id.startsWith('encargos-fgts') || id.startsWith('encargos-inss') ||
+        id.startsWith('encargos-prov') || id.startsWith('vt-') || id.startsWith('vr-')) {
+      delete DB._tombstones[id];
+      tombstonesRemovidos++;
+    }
+  });
+
+  // Remover lançamentos automáticos existentes para recriar do zero
+  var antesCount = (DB.contasPagar||[]).length;
+  DB.contasPagar = (DB.contasPagar||[]).filter(function(p) {
+    var ehAuto = p.id && (
+      p.id.startsWith('folha-') || p.id.startsWith('encargos-') ||
+      p.id.startsWith('vt-') || p.id.startsWith('vr-')
+    );
+    return !ehAuto;
+  });
+
+  // Reset flag para forçar geração
+  localStorage.removeItem('lumarc_folha_ultima_geracao');
+
+  // Gerar lançamentos
+  gerarContasFolha();
+
+  var depois = (DB.contasPagar||[]).length;
+  var criados = depois - (antesCount - (antesCount - DB.contasPagar.length));
+
+  saveAll(true);
+  closeModal('modal-refazer-folha');
+  renderPagarTable();
+  showToast('✅ Lançamentos de folha recriados com sucesso!');
+}
   // após a geração, remove os lançamentos recém-criados cujo vencimento
   // seja anterior à data de corte informada.
   var antesCount = (DB.contasPagar||[]).length;
@@ -29162,6 +29198,7 @@ function baixarCombinacao(idxList) {
   selecionarCombinacao(idxList);
   setTimeout(function() { abrirBaixaAgrupada(); }, 150);
 }
+
 
 
 
