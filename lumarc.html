@@ -6324,6 +6324,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 <script>
 
 
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -11785,7 +11786,7 @@ function printRoteiro(osNum) {
     .assin-box{border-top:1px solid #1C2333;padding-top:8px;text-align:center;font-size:10px;color:#64748B}
     .foot{margin-top:28px;padding-top:12px;border-top:1px solid #E2E8F0;text-align:center;font-size:9px;color:#94A3B8}
     @media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
-  </style></head><body><div class="page">
+  </style><\/head><body><div class="page">
 
   <div class="hdr">
     <div>
@@ -11823,7 +11824,7 @@ function printRoteiro(osNum) {
   </div>
 
   <div class="foot">Lumarc — Usinagem · Caldeiraria · Manutenção Mecânica · Pintura Industrial · Camaçari / BA</div>
-  </div></body></html>`;
+  </div><\/body><\/html>`;
 
   const w = window.open('','_blank');
   w.document.write(html); w.document.close();
@@ -11879,7 +11880,7 @@ function printOS(idx, semValores) {
     .assin-box{border-top:1px solid #1C2333;padding-top:8px;text-align:center;font-size:10px;color:#64748B}
     .foot{margin-top:28px;padding-top:12px;border-top:1px solid #E2E8F0;text-align:center;font-size:9px;color:#94A3B8}
     .pdf-logo-img{max-height:48px;max-width:160px;object-fit:contain;display:block;}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
-  </style></head><body><div class="page">
+  </style><\/head><body><div class="page">
 
   <div class="hdr">
     <div>
@@ -11938,7 +11939,7 @@ function printOS(idx, semValores) {
   </div>
 
   <div class="foot">Lumarc — Usinagem · Caldeiraria · Manutenção Mecânica · Pintura Industrial · Camaçari / BA</div>
-  </div></body></html>`;
+  </div><\/body><\/html>`;
 
   const w = window.open('','_blank');
   w.document.write(html); w.document.close();
@@ -14122,7 +14123,7 @@ function printPedidoCompra(idx) {
     .assin-box{border-top:1px solid #1C2333;padding-top:8px;text-align:center;font-size:10px;color:#64748B}
     .foot{margin-top:24px;padding-top:10px;border-top:1px solid #E2E8F0;text-align:center;font-size:9px;color:#94A3B8}
     .pdf-logo-img{max-height:48px;max-width:160px;object-fit:contain;display:block;}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
-  </style></head><body><div class="page">
+  </style><\/head><body><div class="page">
 
   <div class="hdr">
     <div>
@@ -14172,7 +14173,7 @@ function printPedidoCompra(idx) {
 
   <div class="foot">${getPDFCompanyHTML().name} — ${getPDFCompanyHTML().sub} · Camaçari/BA<br>
   Pedido emitido em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</div>
-  </div></body></html>`;
+  </div><\/body><\/html>`;
 
   const w = window.open('','_blank');
   w.document.write(html); w.document.close();
@@ -15199,7 +15200,7 @@ function viewAnexo(dataUrl) {
   const win = window.open('', '_blank');
   win.document.write(`<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh">
     <img src="${dataUrl}" style="max-width:100vw;max-height:100vh;object-fit:contain">
-  </body></html>`);
+  <\/body><\/html>`);
   win.document.close();
 }
 
@@ -15377,7 +15378,7 @@ function exportPropostaComercial() {
       .page { padding:24px 32px; }
     }
   </style>
-  </head><body><div class="page">
+  <\/head><body><div class="page">
 
   <!-- HEADER -->
   <div class="header">
@@ -15444,7 +15445,7 @@ function exportPropostaComercial() {
     </div>
   </div>
 
-  </div></body></html>`;
+  </div><\/body><\/html>`;
 
   const w = window.open('','_blank');
   if (!w) { showToast('Permita pop-ups para gerar a proposta.','warn'); return; }
@@ -15564,7 +15565,7 @@ function exportPDF() {
     .assin{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:28px}
     .assin-box{border-top:1px solid ${hbg};padding-top:8px;text-align:center;font-size:10px;color:#64748B}
     @media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
-  </style></head><body><div class="page">
+  </style><\/head><body><div class="page">
 
   <div class="hdr">
     <div>${logoHTML}<div class="logo-sub">${company.sub}</div><div style="margin-top:6px;font-size:10px;color:#64748B">Camaçari — Bahia — Brasil</div></div>
@@ -15623,7 +15624,7 @@ function exportPDF() {
 
   <div class="foot">${company.name} — ${company.sub} · Camaçari/BA<br>
   Orçamento emitido em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</div>
-  </div></body></html>`;
+  </div><\/body><\/html>`;
 
   const w = window.open('','_blank');
   w.document.write(html); w.document.close();
@@ -23748,7 +23749,7 @@ function imprimirGuiaCega() {
     +'th{background:#f0f0f0;border:1px solid #999;padding:7px;font-size:11px;text-align:left}'
     +'.assin{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:30px}'
     +'.assin div{border-top:1px solid #999;padding-top:4px;font-size:11px;color:#666}'
-    +'@media print{button{display:none}}</style></head><body>'
+    +'@media print{button{display:none}}</style><\/head><body>'
     +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
     +'<div><h2>GUIA DE CONFERÊNCIA DE RECEBIMENTO</h2>'
     +'<p><strong>Pedido de Compra:</strong> '+pc.num+'</p>'
@@ -23775,7 +23776,7 @@ function imprimirGuiaCega() {
     +'</div>'
     +'<div style="margin-top:10px;font-size:10px;color:#888">Gerado pelo Sistema Lumarc · '+new Date().toLocaleString('pt-BR')+'</div>'
     +'<scr'+'ipt>window.onload=function(){window.print();}<\/scr'+'ipt>'
-    +'</body></html>';
+    +'<\/body><\/html>';
 
   var w = window.open('','_blank','width=900,height=700');
   w.document.write(html);
@@ -25897,7 +25898,7 @@ function imprimirOrdemTerceir(id) {
     +'th,td{border:1px solid #ccc;padding:6px 8px}th{background:#f5f5f5}h2{margin:0;font-size:15px}'
     +'.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}'
     +'.section{margin-bottom:14px}.section-title{font-weight:700;font-size:12px;text-transform:uppercase;color:#555;margin-bottom:6px;border-bottom:1px solid #ccc;padding-bottom:2px}'
-    +'@media print{button{display:none}}</style></head><body>'
+    +'@media print{button{display:none}}</style><\/head><body>'
     +'<div class="header">'
     +'<div>'+logoHtml+'<p style="margin:4px 0;color:#666">'+( cfg.empresa||'Lumarc Indústria e Comércio')+'</p></div>'
     +'<div style="text-align:right"><h2>ORDEM DE TERCEIRIZAÇÃO</h2>'
@@ -25926,7 +25927,7 @@ function imprimirOrdemTerceir(id) {
     +'<th>Data</th>'
     +'</tr><tr><td></td><td></td><td></td><td></td></tr></table></div>'
     +'<p style="font-size:9px;color:#999;margin-top:16px">Gerado pelo Sistema Lumarc · '+new Date().toLocaleString('pt-BR')+'</p>'
-    +'<scr'+'ipt>window.onload=function(){window.print();}<\/script></body></html>';
+    +'<scr'+'ipt>window.onload=function(){window.print();}<\/script><\/body><\/html>';
 
   var w = window.open('','_blank','width=900,height=700');
   w.document.write(html);
@@ -26885,7 +26886,7 @@ function imprimirBoletimById(id){
     +'<style>body{font-family:Arial,sans-serif;margin:24px;font-size:11px}table{width:100%;border-collapse:collapse}'
     +'th,td{border:1px solid #ccc;padding:6px 8px}th{background:#f5f5f5}h2{margin:0;font-size:14px}'
     +'.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}'
-    +'tfoot td{font-weight:700;background:#f0f0f0}@media print{button{display:none}}</style></head><body>'
+    +'tfoot td{font-weight:700;background:#f0f0f0}@media print{button{display:none}}</style><\/head><body>'
     +'<div class="header"><div>'+logoHtml+'<p style="margin:4px 0;color:#666">'+(cfg.empresa||'Lumarc Indústria e Comércio')+'</p></div>'
     +'<div style="text-align:right"><h2>BOLETIM DE MEDIÇÃO</h2>'
     +'<p style="margin:2px 0;color:#666">Nº '+bol.num+' · '+bol.contNum+'</p>'
@@ -26903,7 +26904,7 @@ function imprimirBoletimById(id){
     +'<div style="border-top:1px solid #999;padding-top:4px;font-size:10px;color:#666">Aprovação Cliente ________________________</div>'
     +'</div>'
     +'<p style="font-size:9px;color:#999;margin-top:14px">Gerado pelo Sistema Lumarc · '+new Date().toLocaleString('pt-BR')+'</p>'
-    +'<scr'+'ipt>window.onload=function(){window.print();}<\/script></body></html>';
+    +'<scr'+'ipt>window.onload=function(){window.print();}<\/script><\/body><\/html>';
   var w=window.open('','_blank','width=900,height=700');
   w.document.write(html); w.document.close();
 }
@@ -27106,7 +27107,7 @@ function printOSChao(idx) {
     +'.info-label{font-size:9px;text-transform:uppercase;color:#666;margin-bottom:2px}'
     +'.info-val{font-weight:700;font-size:13px}'
     +'.status-box{border:2px solid #333;padding:4px 10px;border-radius:4px;font-weight:800;font-size:12px;display:inline-block}'
-    +'@media print{button{display:none}}</style></head><body>'
+    +'@media print{button{display:none}}</style><\/head><body>'
     +'<div class="header">'
     +'<div>'+logoHtml+'<div style="font-size:10px;color:#888;margin-top:3px">'+(cfg.empresa||'Lumarc Indústria e Comércio')+'</div></div>'
     +'<div style="text-align:right">'
@@ -27143,7 +27144,7 @@ function printOSChao(idx) {
 
     +'<p style="font-size:9px;color:#999;margin-top:10px;text-align:right">Gerado pelo Sistema Lumarc · '+new Date().toLocaleString('pt-BR')+'</p>'
     +'<scr'+'ipt>window.onload=function(){window.print();}<\/scr'+'ipt>'
-    +'</body></html>';
+    +'<\/body><\/html>';
 
   var w = window.open('','_blank','width=900,height=700');
   w.document.write(html); w.document.close();
@@ -28805,6 +28806,7 @@ function baixarCombinacao(idxList) {
   selecionarCombinacao(idxList);
   setTimeout(function() { abrirBaixaAgrupada(); }, 150);
 }
+
 
 
 
