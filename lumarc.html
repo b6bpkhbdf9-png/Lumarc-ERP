@@ -6471,6 +6471,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
 
 
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -9589,10 +9590,11 @@ function openModal(id) {
   el.style.justifyContent = 'center';
 }
 function closeModal(id) {
-  var el = g(id);
+  var el = document.getElementById(id);
   if (!el) return;
   el.classList.remove('open');
   el.style.display = 'none';
+  el.style.zIndex = '';
 }
 function closeModal(id) { g(id).classList.remove('open'); }
 // Modal click-outside handlers defined below in MODALS section
@@ -29144,6 +29146,7 @@ function baixarCombinacao(idxList) {
   selecionarCombinacao(idxList);
   setTimeout(function() { abrirBaixaAgrupada(); }, 150);
 }
+
 
 
 
