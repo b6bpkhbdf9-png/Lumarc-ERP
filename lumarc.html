@@ -1477,6 +1477,9 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
       </select>
       <button class="btn btn-ghost btn-sm" onclick="selecionarTodasCP()">☑ Selec. todas</button>
       <button class="btn btn-ghost btn-sm" onclick="limparSelecaoCP()">✕ Limpar</button>
+      <button class="btn btn-ghost btn-sm" onclick="diagnosticarDuplicatasFinanceiras()" title="Localiza e remove lançamentos duplicados" style="border-color:#7C3AED;color:#7C3AED">🔍 Verificar duplicatas</button>
+      <button class="btn btn-ghost btn-sm" onclick="abrirRefazerLancamentosFolha()" style="border-color:#0F766E;color:#0F766E">🔄 Refazer lançamentos de folha</button>
+      <button class="btn btn-ghost btn-sm" onclick="abrirResetContas('pagar')" style="border-color:#DC2626;color:#DC2626">🗑️ Resetar contas</button>
       <button class="btn btn-primary" onclick="openPagarModal()">+ Nova conta</button>
     </div>
   </div>
@@ -6327,6 +6330,8 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 </div>
 
 <script>
+
+
 
 
 
@@ -11603,9 +11608,9 @@ function renderOSTab() {
   const filterPrio = g('os-filter-prio')?.value || '';
   const now = new Date();
 
-  const filtered = DB.ordens.filter(os => {
-    const matchS = !search || os.num.toLowerCase().includes(search)
-      || os.cliNome.toLowerCase().includes(search)
+  const filtered = (DB.ordens||[]).filter(os => {
+    const matchS = !search || (os.num||'').toLowerCase().includes(search)
+      || (os.cliNome||os.cliente||'').toLowerCase().includes(search)
       || (os.desc||'').toLowerCase().includes(search);
     const matchSt = !filterStatus || os.status === filterStatus;
     const matchP = !filterPrio || os.prio === filterPrio;
@@ -11685,7 +11690,9 @@ function renderOSKanban(filtered) {
 }
 
 function renderOSLista(filtered) {
+  filtered = filtered || [];
   const tbody = g('os-list-body');
+  if (!tbody) return;
   if (!filtered.length) {
     tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--muted)">Nenhuma OS encontrada.</td></tr>';
     return;
@@ -28867,6 +28874,8 @@ function baixarCombinacao(idxList) {
 
 
 
+
+
 </script>
 </div><!-- /app-root -->
 
@@ -29099,6 +29108,25 @@ function baixarCombinacao(idxList) {
     </div>
   </div>
 
+<!-- ===== MODAL: DIAGNÓSTICO DE DUPLICATAS FINANCEIRAS ===== -->
+<div class="modal-overlay" id="modal-diag-duplicatas">
+  <div class="modal" style="width:640px">
+    <div class="modal-hdr">
+      <div class="modal-title">🔍 Verificar Duplicatas Financeiras</div>
+      <button class="modal-close" onclick="closeModal('modal-diag-duplicatas')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="notice" style="margin-bottom:12px">
+        Identifica lançamentos duplicados em Contas a Pagar e Contas a Receber — mesmo valor, mesma descrição e data próxima (±3 dias).
+      </div>
+      <div id="diag-dup-body" style="max-height:380px;overflow-y:auto;font-size:12px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-diag-duplicatas')">Fechar</button>
+      <button class="btn btn-danger" id="diag-dup-remover-btn" style="display:none">🗑 Remover duplicatas</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
