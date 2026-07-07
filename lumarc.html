@@ -440,7 +440,8 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 .subgroup-pill { padding:5px 14px; border-radius:20px; color:#94A3B8; font-size:12px; font-weight:600; cursor:pointer; border:1px solid #2D3D50; transition:all .15s; white-space:nowrap; }
 .subgroup-pill:hover { background:#1E3A5F; color:#fff; }
 .subgroup-pill.active { background:var(--accent); color:#fff; border-color:var(--accent); }
-.subtabs-bar { background:#1E2A3A; border-bottom:1px solid #2D3D50; padding:0 24px; display:flex; position:sticky; top:54px; z-index:198; overflow-x:auto; } font-size:11px; font-weight:600; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all .15s; white-space:nowrap; flex-shrink:0; }
+.subtabs-bar { background:#1E2A3A; border-bottom:1px solid #2D3D50; padding:0 24px; display:flex; position:sticky; top:54px; z-index:198; overflow-x:auto; }
+.subtab { padding:8px 16px; color:#94A3B8; font-size:11px; font-weight:600; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all .15s; white-space:nowrap; flex-shrink:0; } font-size:11px; font-weight:600; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all .15s; white-space:nowrap; flex-shrink:0; }
 .subtab:hover { color:#CBD5E1; }
 .subtab.active { color:#fff; border-bottom-color:var(--accent,#2563EB); }
 .tabs-bar { overflow-x:auto; }
@@ -1476,14 +1477,30 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 <!-- ===================== TAB: FINANCEIRO DASHBOARD ===================== -->
 <div id="tab-fin-dash" class="tab-content">
 <div class="main">
-  <div id="findash-container">
-    <div id="findash-kpis-row" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:20px"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-      <div id="findash-receitas-chart"></div>
-      <div id="findash-projecao-chart"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <h2 style="font-size:16px;font-weight:800">📊 Dashboard Financeiro</h2>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="font-size:12px;color:var(--muted)">Ano:</span>
+      <select id="findash-ano" onchange="renderFinDashboard()" style="width:90px"></select>
     </div>
-    <div id="findash-projecao-kpis" style="margin-top:16px"></div>
   </div>
+  <div id="findash-kpis-row1" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:12px"></div>
+  <div id="findash-kpis-row2" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:20px"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div id="findash-saldo-atual-donut"></div>
+    <div id="findash-projecao-chart"></div>
+  </div>
+  <div id="findash-projecao-kpis" style="margin-bottom:16px"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div id="findash-margem-donut"></div>
+    <div id="findash-bar-chart"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div id="findash-donut-receita"></div>
+    <div id="findash-donut-despesa"></div>
+  </div>
+  <div id="findash-line-chart" style="margin-bottom:16px"></div>
+  <div id="findash-dre-table"></div>
 </div>
 </div>
 
