@@ -17451,15 +17451,33 @@ async function ensureDefaultAdmin() {
   if (!users.length && DB.usuarios && DB.usuarios.length) users = DB.usuarios;
 
   if (!users.length) {
-    // New device / first run — create default admin
+    // New device / first run — create default admin + Fabian
     const passHash = await sha256('admin123');
     const adminUser = {
       login:'admin', nome:'Administrador', perfil:'admin',
       passHash, status:'ativo', perms:PERFIL_PERMS ? PERFIL_PERMS.admin : {},
       criadoEm: new Date().toLocaleDateString('pt-BR')
     };
-    users = [adminUser];
-    console.log('[Auth] Default admin created, hash:', passHash);
+    // Fabian Nery — operacional, senha padrão lumarc123
+    const fabianHash = 'lh1_38c9dba4_26d8e2a7_9';
+    const fabianUser = {
+      login:'fabian.nery', nome:'Fabian Nery', perfil:'operacional',
+      passHash: fabianHash, status:'ativo', perms:PERFIL_PERMS ? PERFIL_PERMS.operacional : {},
+      criadoEm: new Date().toLocaleDateString('pt-BR')
+    };
+    users = [adminUser, fabianUser];
+    console.log('[Auth] Default users created: admin + fabian.nery');
+  }
+
+  // Garante que Fabian existe mesmo em instâncias antigas (só admin)
+  if (users.length && !users.find(u => u.login === 'fabian.nery')) {
+    users.push({
+      login:'fabian.nery', nome:'Fabian Nery', perfil:'operacional',
+      passHash: 'lh1_38c9dba4_26d8e2a7_9', status:'ativo',
+      perms:PERFIL_PERMS ? PERFIL_PERMS.operacional : {},
+      criadoEm: new Date().toLocaleDateString('pt-BR')
+    });
+    console.log('[Auth] Fabian Nery adicionado automaticamente.');
   }
 
   // Migra hash do admin do formato legado ('fallback_HASH_LEN') para o
