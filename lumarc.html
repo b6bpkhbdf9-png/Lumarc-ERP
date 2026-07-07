@@ -6470,6 +6470,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
 
 
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -17604,7 +17605,20 @@ function updateTopbarUser(user) {
   if (el) el.innerHTML = '<span style="font-size:11px;color:#94A3B8">' + user.nome + '</span> <span class="role-badge role-' + user.perfil + '" style="font-size:9px">' + (labels[user.perfil]||user.perfil) + '</span>';
 }
 
+function _moverModaisParaBody() {
+  // Move todos os modais para filho direto do body
+  // Isso garante que position:fixed funcione corretamente
+  // independente de qualquer transform/filter no DOM pai
+  var modais = document.querySelectorAll('.modal-overlay');
+  modais.forEach(function(m) {
+    if (m.parentElement !== document.body) {
+      document.body.appendChild(m);
+    }
+  });
+}
+
 function bootApp() {
+  _moverModaisParaBody();
   g('o-num').value = genOrcNum();
   g('o-data').value = new Date().toISOString().split('T')[0];
   if (typeof setCurrentMonth === 'function') setCurrentMonth();
@@ -29130,6 +29144,7 @@ function baixarCombinacao(idxList) {
   selecionarCombinacao(idxList);
   setTimeout(function() { abrirBaixaAgrupada(); }, 150);
 }
+
 
 
 
