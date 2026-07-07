@@ -6472,6 +6472,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
 
 
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -9578,16 +9579,10 @@ document.querySelectorAll('.section-body').forEach(b => {
 // MODALS
 // ============================================================
 function openModal(id) {
-  var el = g(id);
+  var el = document.getElementById(id);
   if (!el) return;
   el.classList.add('open');
-  el.style.display = 'flex';
-  el.style.position = 'fixed';
-  el.style.inset = '0';
-  el.style.zIndex = '99999';
-  el.style.background = 'rgba(0,0,0,0.5)';
-  el.style.alignItems = 'center';
-  el.style.justifyContent = 'center';
+  el.style.cssText = 'display:flex !important; position:fixed !important; inset:0 !important; z-index:99999 !important; background:rgba(0,0,0,0.5) !important; align-items:center !important; justify-content:center !important;';
 }
 function closeModal(id) {
   var el = document.getElementById(id);
@@ -29146,6 +29141,7 @@ function baixarCombinacao(idxList) {
   selecionarCombinacao(idxList);
   setTimeout(function() { abrirBaixaAgrupada(); }, 150);
 }
+
 
 
 
