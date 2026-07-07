@@ -6468,6 +6468,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
 
 
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -7336,7 +7337,17 @@ function abrirRefazerLancamentosFolha() {
   if (g('refazer-folha-preview')) {
     g('refazer-folha-preview').textContent = qtdFunc + ' funcionário(s) ativo(s) — lançamentos de salários, encargos, VT e VR serão verificados e recriados se faltarem.';
   }
-  openModal('modal-refazer-folha');
+  var _m2 = document.getElementById('modal-refazer-folha');
+  if (_m2) {
+    _m2.style.display = 'flex';
+    _m2.style.position = 'fixed';
+    _m2.style.inset = '0';
+    _m2.style.zIndex = '99999';
+    _m2.style.background = 'rgba(0,0,0,0.5)';
+    _m2.style.alignItems = 'center';
+    _m2.style.justifyContent = 'center';
+    _m2.classList.add('open');
+  }
 }
 
 function confirmarRefazerLancamentosFolha() {
@@ -9563,7 +9574,24 @@ document.querySelectorAll('.section-body').forEach(b => {
 // ============================================================
 // MODALS
 // ============================================================
-function openModal(id) { g(id).classList.add('open'); }
+function openModal(id) {
+  var el = g(id);
+  if (!el) return;
+  el.classList.add('open');
+  el.style.display = 'flex';
+  el.style.position = 'fixed';
+  el.style.inset = '0';
+  el.style.zIndex = '99999';
+  el.style.background = 'rgba(0,0,0,0.5)';
+  el.style.alignItems = 'center';
+  el.style.justifyContent = 'center';
+}
+function closeModal(id) {
+  var el = g(id);
+  if (!el) return;
+  el.classList.remove('open');
+  el.style.display = 'none';
+}
 function closeModal(id) { g(id).classList.remove('open'); }
 // Modal click-outside handlers defined below in MODALS section
 
@@ -13035,7 +13063,17 @@ function abrirResetContas(tipo) {
     g('reset-contas-confirmar-btn').disabled = false;
   }
 
-  openModal('modal-reset-contas');
+  var _m3 = document.getElementById('modal-reset-contas');
+  if (_m3) {
+    _m3.style.display = 'flex';
+    _m3.style.position = 'fixed';
+    _m3.style.inset = '0';
+    _m3.style.zIndex = '99999';
+    _m3.style.background = 'rgba(0,0,0,0.5)';
+    _m3.style.alignItems = 'center';
+    _m3.style.justifyContent = 'center';
+    _m3.classList.add('open');
+  }
 }
 
 function executarResetContas() {
@@ -13211,7 +13249,18 @@ function diagnosticarDuplicatasFinanceiras() {
     btnRemover.onclick = function() { removerDuplicatasConfirmado(); };
   }
 
-  openModal('modal-diag-duplicatas');
+  // Abrir modal diretamente via style (bypass qualquer problema de CSS/classe)
+  var _m = document.getElementById('modal-diag-duplicatas');
+  if (_m) {
+    _m.style.display = 'flex';
+    _m.style.position = 'fixed';
+    _m.style.inset = '0';
+    _m.style.zIndex = '99999';
+    _m.style.background = 'rgba(0,0,0,0.5)';
+    _m.style.alignItems = 'center';
+    _m.style.justifyContent = 'center';
+    _m.classList.add('open');
+  }
 }
 
 function removerDuplicatasConfirmado() {
@@ -29072,6 +29121,7 @@ function baixarCombinacao(idxList) {
   selecionarCombinacao(idxList);
   setTimeout(function() { abrirBaixaAgrupada(); }, 150);
 }
+
 
 
 
