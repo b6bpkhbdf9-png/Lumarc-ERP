@@ -23240,6 +23240,31 @@ function confirmarResetContas() {
   closeModal('modal-reset-contas');
 }
 
+function salvarTransferenciaCaixa() {
+  var origem  = g('transf-origem')?.value;
+  var destino = g('transf-destino')?.value;
+  var valor   = parseFloat((g('transf-valor')?.value||'0').replace(',','.')) || 0;
+  var data    = g('transf-data')?.value || new Date().toISOString().split('T')[0];
+  var motivo  = g('transf-motivo')?.value || 'Transferência entre caixas';
+  var obs     = g('transf-obs')?.value || '';
+
+  if (!origem || !destino) { showToast('Selecione origem e destino.','warn'); return; }
+  if (origem === destino)  { showToast('Origem e destino devem ser diferentes.','warn'); return; }
+  if (valor <= 0)          { showToast('Informe um valor maior que zero.','warn'); return; }
+
+  DB.transferenciasCaixa = DB.transferenciasCaixa || [];
+  DB.transferenciasCaixa.push({
+    id: _stableId('transf', origem+destino+data+valor),
+    origem, destino, valor, data, motivo, obs,
+    criadoEm: new Date().toISOString()
+  });
+
+  saveAll(true);
+  closeModal('modal-transferencia-caixa');
+  renderCaixas && renderCaixas();
+  showToast('Transferência registrada com sucesso!','info');
+}
+
 function garantirIDs() {
   // Garante ids estáveis em TODOS os cadastros. Usa slug do nome/desc em
   // vez de Date.now() — assim qualquer máquina chega ao MESMO id para o
