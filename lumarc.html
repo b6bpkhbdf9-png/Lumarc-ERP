@@ -6469,6 +6469,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
 
 
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -7926,7 +7927,7 @@ function renderFinDashboard() {
 
     if (projChartEl) {
       var corLinha = '#3B82F6';
-      projChartEl.innerHTML = _findashSvgLineChart(projLabels, projValues, '100%', 180, corLinha);
+      projChartEl.innerHTML = _findashSvgLineChart(projLabels, projValues, 700, 180, corLinha);
     }
 
     if (projKpisEl) {
@@ -7960,7 +7961,7 @@ function renderFinDashboard() {
   // ════════════════════════════════════════════════════════════════════════
   var barEl = g('findash-bar-chart');
   if (barEl) {
-    barEl.innerHTML = _findashSvgBarChart(mesesLabels, receitaPorMes, despesaPorMes, lucroPorMes, '100%', 260)
+    barEl.innerHTML = _findashSvgBarChart(mesesLabels, receitaPorMes, despesaPorMes, lucroPorMes, 900, 240)
       + '<div style="display:flex;gap:16px;justify-content:center;margin-top:6px;font-size:11px">'
       + '<span><span style="display:inline-block;width:10px;height:10px;background:#0F9B8E;border-radius:2px;margin-right:4px"></span>Total Receita</span>'
       + '<span><span style="display:inline-block;width:10px;height:10px;background:#F26D6D;border-radius:2px;margin-right:4px"></span>Total Despesas</span>'
@@ -7986,7 +7987,7 @@ function renderFinDashboard() {
   // ROW 4: Saldo projetado (linha) + DRE resumido
   // ════════════════════════════════════════════════════════════════════════
   var lineEl = g('findash-line-chart');
-  if (lineEl) lineEl.innerHTML = _findashSvgLineChart(mesesLabels, saldoPorMes, '100%', 200, '#F5A623');
+  if (lineEl) lineEl.innerHTML = _findashSvgLineChart(mesesLabels, saldoPorMes, 900, 200, '#F5A623');
 
   var dreEl = g('findash-dre-table');
   if (dreEl) {
@@ -16227,6 +16228,7 @@ let cloudCfg = {
 };
 let cloudState = 'off';      // off | ok | err | sync | warn
 var _syncPollTimer   = null; // timer para polling de sync automático
+var _syncPollActive   = false; // flag de polling ativo
 var _syncLastRemoteAt = null; // último timestamp remoto conhecido
 let cloudLastSaved   = null; // ISO timestamp of last successful push
 let cloudLastVersion = null; // version counter from JSONbin
@@ -29148,6 +29150,7 @@ function baixarCombinacao(idxList) {
 
 
 
+
 </script>
 </div><!-- /app-root -->
 
@@ -29440,6 +29443,29 @@ function baixarCombinacao(idxList) {
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-reset-contas')">Cancelar</button>
       <button id="reset-contas-confirmar-btn" class="btn btn-danger" onclick="confirmarResetContas()" style="background:#DC2626;border-color:#DC2626">🗑️ Confirmar reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: DETALHE KPI FINANCEIRO ===== -->
+<div class="modal-overlay" id="modal-detalhe-kpi">
+  <div class="modal" style="width:680px;max-height:80vh;display:flex;flex-direction:column">
+    <div class="modal-hdr">
+      <div class="modal-title" id="detalhe-kpi-title">Detalhamento</div>
+      <button class="modal-close" onclick="closeModal('modal-detalhe-kpi')">×</button>
+    </div>
+    <div class="modal-body" style="flex:1;overflow-y:auto">
+      <div id="detalhe-kpi-criterio" style="font-size:11px;color:var(--muted);background:var(--bg);padding:10px 12px;border-radius:6px;margin-bottom:14px;line-height:1.6"></div>
+      <table class="data-table" style="font-size:12px">
+        <thead><tr>
+          <th>Descrição</th><th>Vencimento</th><th>Valor</th><th>Pago/Recebido</th><th>Saldo</th><th>Status</th>
+        </tr></thead>
+        <tbody id="detalhe-kpi-body"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <div style="font-size:13px;font-weight:700">Total: <span id="detalhe-kpi-total" style="color:var(--accent)">—</span></div>
+      <button class="btn btn-ghost" onclick="closeModal('modal-detalhe-kpi')">Fechar</button>
     </div>
   </div>
 </div>
