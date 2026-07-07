@@ -6435,6 +6435,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
 
 
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -23090,6 +23091,27 @@ function forcarSyncRC() {
   });
 }
 
+
+// ── CONFIRMAR RESET DE CONTAS ─────────────────────────────────────────────
+var _resetContasTipoAtual = 'pagar';
+
+function confirmarResetContas() {
+  if (!confirm('Tem certeza? Esta ação é irreversível e excluirá TODOS os lançamentos.')) return;
+  if (_resetContasTipoAtual === 'pagar') {
+    DB.contasPagar = [];
+    registrarTombstone && DB.contasPagar.forEach && null; // tombstones handled by saveAll
+    showToast('Contas a Pagar resetadas.', 'warn');
+    saveAll(true);
+    renderPagarTable && renderPagarTable();
+  } else {
+    DB.contasReceber = [];
+    showToast('Contas a Receber resetadas.', 'warn');
+    saveAll(true);
+    renderReceberTable && renderReceberTable();
+  }
+  closeModal('modal-reset-contas');
+}
+
 function garantirIDs() {
   // Garante ids estáveis em TODOS os cadastros. Usa slug do nome/desc em
   // vez de Date.now() — assim qualquer máquina chega ao MESMO id para o
@@ -29007,6 +29029,7 @@ function baixarCombinacao(idxList) {
 
 
 
+
 </script>
 </div><!-- /app-root -->
 
@@ -29255,6 +29278,50 @@ function baixarCombinacao(idxList) {
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-diag-duplicatas')">Fechar</button>
       <button class="btn btn-danger" id="diag-dup-remover-btn" style="display:none">🗑 Remover duplicatas</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: REFAZER LANÇAMENTOS DE FOLHA ===== -->
+<div class="modal-overlay" id="modal-refazer-folha">
+  <div class="modal" style="width:520px">
+    <div class="modal-hdr">
+      <div class="modal-title">🔄 Refazer Lançamentos de Folha</div>
+      <button class="modal-close" onclick="closeModal('modal-refazer-folha')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="notice" style="margin-bottom:14px">
+        Remove todos os lançamentos automáticos de folha (salários, encargos, VT, VR) a partir da data de corte e os recria com os valores atuais dos funcionários.
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px">Data de corte (lançamentos a partir desta data serão refeitos):</label>
+        <input type="date" id="refazer-folha-corte" style="width:200px">
+      </div>
+      <div id="refazer-folha-preview" style="font-size:12px;color:var(--muted);padding:10px;background:var(--bg);border-radius:6px;border:1px solid var(--border)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-refazer-folha')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarRefazerLancamentosFolha()" style="background:#0F766E;border-color:#0F766E">✅ Refazer lançamentos</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: RESETAR CONTAS ===== -->
+<div class="modal-overlay" id="modal-reset-contas">
+  <div class="modal" style="width:540px">
+    <div class="modal-hdr">
+      <div class="modal-title" id="reset-contas-title">🗑️ Resetar Contas</div>
+      <button class="modal-close" onclick="closeModal('modal-reset-contas')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="notice notice-danger" style="margin-bottom:14px;border-color:#DC2626;background:rgba(220,38,38,.08)">
+        ⚠️ Esta ação é irreversível. Todos os lançamentos serão excluídos permanentemente.
+      </div>
+      <div id="reset-contas-resumo" style="margin-bottom:14px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-reset-contas')">Cancelar</button>
+      <button id="reset-contas-confirmar-btn" class="btn btn-danger" onclick="confirmarResetContas()" style="background:#DC2626;border-color:#DC2626">🗑️ Confirmar reset</button>
     </div>
   </div>
 </div>
