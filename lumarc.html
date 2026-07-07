@@ -440,8 +440,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 .subgroup-pill { padding:5px 14px; border-radius:20px; color:#94A3B8; font-size:12px; font-weight:600; cursor:pointer; border:1px solid #2D3D50; transition:all .15s; white-space:nowrap; }
 .subgroup-pill:hover { background:#1E3A5F; color:#fff; }
 .subgroup-pill.active { background:var(--accent); color:#fff; border-color:var(--accent); }
-.subtabs-bar { background:#1E2A3A; border-bottom:1px solid #2D3D50; padding:0 24px; display:flex; position:sticky; top:54px; z-index:198; overflow-x:auto; }
-.subtab { padding:8px 16px; color:#94A3B8; font-size:11px; font-weight:600; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all .15s; white-space:nowrap; flex-shrink:0; }
+.subtabs-bar { background:#1E2A3A; border-bottom:1px solid #2D3D50; padding:0 24px; display:flex; position:sticky; top:54px; z-index:198; overflow-x:auto; } font-size:11px; font-weight:600; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:all .15s; white-space:nowrap; flex-shrink:0; }
 .subtab:hover { color:#CBD5E1; }
 .subtab.active { color:#fff; border-bottom-color:var(--accent,#2563EB); }
 .tabs-bar { overflow-x:auto; }
@@ -1012,13 +1011,10 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
   <div class="tab"         data-group="qual"    onclick="switchGroup('qual',this)">🔬 Qualidade</div>
   <div class="tab"         data-group="conf"    onclick="switchGroup('conf',this)">⚙️ Configurações</div>
 </div>
-<!-- Sub-tabs bar (hidden when group has only 1 tab) -->
-<div class="subtabs-bar" id="subtabs-bar" style="display:none"></div>
-
-<!-- barra de subgrupos (Operações: Produção & Engenharia, Compras & Suprimentos...) -->
+<!-- barra de subgrupos (Operações: Produção & Engenharia / Compras & Suprimentos / ...) -->
 <div class="subgroups-bar" id="subgroups-bar" style="display:none"></div>
 
-<!-- subtabs-bar (abas dentro de cada subgrupo ou grupo simples) -->
+<!-- Sub-tabs bar -->
 <div class="subtabs-bar" id="subtabs-bar" style="display:none"></div>
 
 <!-- ===================== TAB: DASHBOARD ===================== -->
@@ -2099,6 +2095,8 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
         <option value="alm">Almoxarifado</option>
         <option value="os">Ordem de Serviço</option>
       </select>
+      <button class="btn btn-ghost btn-sm" onclick="forcarSyncRC()" title="Força sincronização imediata e atualiza lista de RCs" style="border-color:#0F766E;color:#0F766E">🔄 Atualizar RCs</button>
+      <button class="btn btn-ghost btn-sm" onclick="limparTombstonesRC()" title="Se uma RC do Fabian não aparece, pode estar bloqueada — clique para desbloquear" style="border-color:#7C3AED;color:#7C3AED">🔓 Desbloquear RCs</button>
       <button class="btn btn-primary" onclick="openRCModal('alm')">+ Nova RC</button>
     </div>
   </div>
@@ -6350,6 +6348,9 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
 
 
+
+
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -9277,8 +9278,7 @@ function renderSubgroupNav(subgrupos) {
   var subgroupsBar = g('subgroups-bar');
   if (!subgroupsBar) return;
   subgroupsBar.style.display = 'flex';
-  // Empurra a barra de subtabs para baixo da barra de subgrupos, já que
-  // ambas usam position:sticky e ficariam sobrepostas sem isso.
+  // Empurra subtabs para baixo da barra de subgrupos (ambas position:sticky)
   var subTabsBar = g('subtabs-bar');
   if (subTabsBar) subTabsBar.style.top = '90px';
 
@@ -16599,6 +16599,7 @@ async function cloudPollSilent() {
     // Re-render active tab
     renderAfterSync(false);
         updateTopbarAlerts && updateTopbarAlerts();
+        updateTopbarRCBadge && updateTopbarRCBadge();
 
   } catch(e) {
     // falha silenciosa — não interrompe o usuário
@@ -22973,6 +22974,38 @@ function renderDashAlertasSegura() {
   } catch(e) { console.warn('renderDashAlertas:', e.message); }
 }
 
+
+// ── DIAGNÓSTICO DE RC BLOQUEADA POR TOMBSTONE ────────────────────────────
+// Chamada quando uma RC criada pelo Fabian não aparece para o Marcos.
+// Limpa tombstones de RCs para garantir que novas RCs sejam recebidas.
+function limparTombstonesRC() {
+  if (!DB._tombstones) { showToast('Nenhum tombstone registrado.', 'warn'); return; }
+  var rcTombstones = Object.keys(DB._tombstones).filter(function(id) {
+    return id.startsWith('rc-') || id.startsWith('RC-');
+  });
+  if (!rcTombstones.length) {
+    showToast('Nenhuma RC bloqueada por tombstone. Fazendo sincronização...', 'warn');
+    cloudPull(true);
+    return;
+  }
+  if (!confirm('Encontradas ' + rcTombstones.length + ' RC(s) bloqueadas por exclusão anterior: ' + rcTombstones.join(', ') + '\n\nDeseja desbloquear para receber as RCs do Fabian?')) return;
+  rcTombstones.forEach(function(id) { delete DB._tombstones[id]; });
+  saveAll(true);
+  cloudPull(true);
+  showToast('✅ ' + rcTombstones.length + ' tombstone(s) de RC removidos. Sincronizando...', 'warn');
+}
+
+function forcarSyncRC() {
+  // Força pull imediato e re-renderiza RC tab
+  cloudPull(true).then(function() {
+    renderRCTab && renderRCTab();
+    updateTopbarRCBadge && updateTopbarRCBadge();
+  }).catch(function() {
+    renderRCTab && renderRCTab();
+    updateTopbarRCBadge && updateTopbarRCBadge();
+  });
+}
+
 function garantirIDs() {
   // Garante ids estáveis em TODOS os cadastros. Usa slug do nome/desc em
   // vez de Date.now() — assim qualquer máquina chega ao MESMO id para o
@@ -28869,6 +28902,9 @@ function baixarCombinacao(idxList) {
   selecionarCombinacao(idxList);
   setTimeout(function() { abrirBaixaAgrupada(); }, 150);
 }
+
+
+
 
 
 
