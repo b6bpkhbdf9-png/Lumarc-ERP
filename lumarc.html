@@ -6481,6 +6481,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
 
 
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -7392,51 +7393,7 @@ function confirmarRefazerLancamentosFolha() {
   renderPagarTable();
   showToast('✅ Lançamentos de folha recriados com sucesso!');
 }
-  // após a geração, remove os lançamentos recém-criados cujo vencimento
-  // seja anterior à data de corte informada.
-  var antesCount = (DB.contasPagar||[]).length;
 
-  // Reset apenas a flag de última geração (não os tombstones) para que
-  // o gerarContasFolha rode mesmo que já tenha rodado hoje.
-  var flagAnt = localStorage.getItem('lumarc_folha_ultima_geracao');
-  localStorage.removeItem('lumarc_folha_ultima_geracao');
-
-  gerarContasFolha();
-
-  // Aplica o filtro de data de corte: remove lançamentos automáticos
-  // recém-criados (que não existiam antes) cujo vencimento seja antes
-  // da data de corte — sem registrar tombstone, para que possam ser
-  // recriados no futuro se necessário.
-  if (dataCorte) {
-    var novaCount = (DB.contasPagar||[]).length;
-    var removidos = 0;
-    DB.contasPagar = (DB.contasPagar||[]).filter(function(p) {
-      if (!p.venc) return true;
-      var vencDate = new Date(p.venc + 'T12:00:00');
-      var ehAutomatico = p.id && (
-        p.id.startsWith('folha-') || p.id.startsWith('encargos-') ||
-        p.id.startsWith('encargos-fgts') || p.id.startsWith('encargos-inss') ||
-        p.id.startsWith('encargos-prov')
-      );
-      if (ehAutomatico && vencDate < dataCorte) {
-        removidos++;
-        return false;
-      }
-      return true;
-    });
-    if (removidos > 0) {
-      saveAll(true);
-      showToast('🔄 Lançamentos recriados. ' + removidos + ' com vencimento antes de ' + new Date(corteStr+'T12:00:00').toLocaleDateString('pt-BR') + ' foram ignorados.', 'warn');
-    } else {
-      showToast('🔄 Lançamentos de folha verificados e recriados com sucesso!');
-    }
-  } else {
-    showToast('🔄 Lançamentos de folha recriados com sucesso!');
-  }
-
-  closeModal('modal-refazer-folha');
-  renderPagarTable();
-}
 
 function calcItemTotals(itemId) {
   const item = orcItems.find(it => it.id === itemId);
@@ -29199,6 +29156,7 @@ function baixarCombinacao(idxList) {
   selecionarCombinacao(idxList);
   setTimeout(function() { abrirBaixaAgrupada(); }, 150);
 }
+
 
 
 
