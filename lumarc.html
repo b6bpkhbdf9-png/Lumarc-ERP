@@ -6482,6 +6482,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
 
 
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -15249,11 +15250,29 @@ function savePersistence() {
     companyName: g('pers-company-name')?.value || '',
     companySub: g('pers-company-sub')?.value || '',
   };
-  localStorage.setItem('lumarc_pers', JSON.stringify(persData));
+  const persJson = JSON.stringify(persData);
+  localStorage.setItem('lumarc_pers', persJson);
+  // Backup em lumarc_v2 para sobreviver limpeza de cache
+  try {
+    const raw = localStorage.getItem('lumarc_v2');
+    const d = raw ? JSON.parse(raw) : {};
+    d._persistencia = persData;
+    localStorage.setItem('lumarc_v2', JSON.stringify(d));
+  } catch(e) {}
 }
 
 function loadPersistence() {
-  const raw = localStorage.getItem('lumarc_pers');
+  let raw = localStorage.getItem('lumarc_pers');
+  // Fallback: try lumarc_v2 backup
+  if (!raw) {
+    try {
+      const v2 = localStorage.getItem('lumarc_v2');
+      if (v2) {
+        const d2 = JSON.parse(v2);
+        if (d2._persistencia) raw = JSON.stringify(d2._persistencia);
+      }
+    } catch(e) {}
+  }
   if (!raw) { applyPalette(PALETTES_BUILTIN[0]); return; }
   try {
     const d = JSON.parse(raw);
@@ -17528,7 +17547,7 @@ async function ensureDefaultAdmin() {
   if (users.length && !users.find(u => u.login === 'fabian.nery')) {
     users.push({
       login:'fabian.nery', nome:'Fabian Nery', perfil:'operacional',
-      passHash: 'lh1_38c9dba4_26d8e2a7_9', status:'ativo',
+      passHash: 'fallback_38c9dba4_9', status:'ativo',
       perms:PERFIL_PERMS ? PERFIL_PERMS.operacional : {},
       criadoEm: new Date().toLocaleDateString('pt-BR')
     });
@@ -29165,6 +29184,7 @@ function baixarCombinacao(idxList) {
   selecionarCombinacao(idxList);
   setTimeout(function() { abrirBaixaAgrupada(); }, 150);
 }
+
 
 
 
