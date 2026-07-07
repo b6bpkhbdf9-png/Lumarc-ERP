@@ -989,6 +989,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
       <span id="topbar-cloud-icon">☁️</span>
       <span id="topbar-cloud-text">Nuvem</span>
     </div>
+    <button class="btn btn-primary btn-sm" onclick="cloudPull(true)" id="topbar-sync-btn" title="Buscar dados mais recentes da nuvem agora">🔄 Sincronizar agora</button>
     <button class="btn btn-dark btn-sm" onclick="openGlobalSearch()" title="Busca global (Ctrl+K)">🔍 Buscar</button>
     <button class="btn btn-dark btn-sm" onclick="openSyncPanel()">🔄 Sync / Backup</button>
     <button class="btn btn-dark btn-sm" onclick="openPersPanel()">🎨 Personalizar</button>
@@ -6332,6 +6333,8 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
 
 
+
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -6339,8 +6342,8 @@ const g   = id => document.getElementById(id);
 const fmt = (v) => (parseFloat(v)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const fmtP= (v) => `${(parseFloat(v)||0).toFixed(1).replace('.',',')}%`;
 const gv  = id => parseFloat(g(id)?.value)||0;
-let showToast = (msg, type) => {
-  let t = document.getElementById('_toast');
+function showToast(msg, type) {
+  var t = document.getElementById('_toast');
   if (!t) {
     t = document.createElement('div');
     t.id = '_toast';
@@ -6348,11 +6351,11 @@ let showToast = (msg, type) => {
     document.body.appendChild(t);
   }
   t.textContent = msg;
-  t.style.background = type==='err'?'#DC2626':type==='warn'?'#D97706':'#059669';
+  t.style.background = (type==='error'||type==='err') ? '#DC2626' : type==='warn' ? '#D97706' : '#059669';
   t.style.opacity = '1';
   clearTimeout(t._tm);
-  t._tm = setTimeout(()=>{ t.style.opacity='0'; }, 3000);
-};
+  t._tm = setTimeout(function(){ t.style.opacity='0'; }, 3000);
+}
 
 // ============================================================
 // DATA STORES
@@ -16362,7 +16365,7 @@ function renderAfterSync(manual) {
   var grp = (typeof activeGroup !== 'undefined') ? activeGroup : '';
 
   // dash: call renderDash (the parent that prepares params for renderDashKPIs)
-  if (grp === 'dash') { _safe(renderDashboard); _safe(renderDashFinKPIs); _safe(renderDashAlertas); }
+  if (grp === 'dash') { _safe(renderDashboard); _safe(renderDashFinKPIs); _safe(renderDashAlertasSegura); }
   if (grp === 'orc')  { _safe(renderListaOrc); _safe(renderOrcamentosTab); _safe(renderOSTab); _safe(renderFilaProducao); _safe(renderRCTab); _safe(renderComprasTable); _safe(renderAnaliseOS); _safe(renderComercial); }
   if (grp === 'cad')  { _safe(renderCliTable); _safe(renderFornTable); _safe(renderProdTable); _safe(renderMatTable); _safe(renderFuncTable); _safe(renderMaqTable); _safe(renderDespTable); }
   if (grp === 'fin')  { _safe(renderPagarTable); _safe(renderReceberTable); _safe(renderCaixas); _safe(renderConcTable); _safe(renderFluxo); _safe(renderDREGerencial); _safe(renderDashFinKPIs); }
@@ -22911,6 +22914,48 @@ function _stableId(prefix, nome, extra) {
   return prefix + '-' + slug + (extra !== undefined ? '-' + extra : '');
 }
 
+// ── FUNÇÕES UTILITÁRIAS E ALIASES ────────────────────────────────────────
+// toggleEl: mostra/oculta um elemento pelo ID (usado em vários módulos)
+function toggleEl(id) {
+  var el = g(id);
+  if (!el) return;
+  // '' or anything other than 'none' = visible → hide; 'none' = hidden → show
+  el.style.display = (el.style.display === 'none') ? '' : 'none';
+}
+
+// renderListaOrc: alias para renderOrcamentosTab (nome histórico usado em vários lugares)
+function renderListaOrc() {
+  if (typeof renderOrcamentosTab === 'function') renderOrcamentosTab();
+}
+
+// saveOrc: alias para salvarOrcamento
+function saveOrc() {
+  if (typeof salvarOrcamento === 'function') salvarOrcamento();
+}
+
+// savePedidoCompra: alias para salvar PC (a função real pode ter nome diferente)
+function savePedidoCompra() {
+  var formSalvar = g('btn-salvar-pc');
+  if (formSalvar) formSalvar.click();
+  else if (typeof salvarPC === 'function') salvarPC();
+  else showToast('Salve pelo formulário de Pedido de Compra', 'warn');
+}
+
+// abrirReceberPCModal: abre o modal de recebimento de PC
+function abrirReceberPCModal(pcId) {
+  if (typeof selecionarPCparaReceber === 'function') selecionarPCparaReceber(pcId);
+  else { var el = g('modal-receber-pc'); if (el) openModal('modal-receber-pc'); }
+}
+
+// renderDashAlertas segura: chama a função real com os parâmetros corretos
+function renderDashAlertasSegura() {
+  try {
+    var ordens = (typeof DB !== 'undefined' ? DB.ordens : null) || [];
+    var now = new Date();
+    if (typeof renderDashAlertas === 'function') renderDashAlertas(ordens, now);
+  } catch(e) { console.warn('renderDashAlertas:', e.message); }
+}
+
 function garantirIDs() {
   // Garante ids estáveis em TODOS os cadastros. Usa slug do nome/desc em
   // vez de Date.now() — assim qualquer máquina chega ao MESMO id para o
@@ -28807,6 +28852,8 @@ function baixarCombinacao(idxList) {
   selecionarCombinacao(idxList);
   setTimeout(function() { abrirBaixaAgrupada(); }, 150);
 }
+
+
 
 
 
