@@ -6475,6 +6475,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
 
 
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -9571,17 +9572,43 @@ document.querySelectorAll('.section-body').forEach(b => {
 // MODALS
 // ============================================================
 function openModal(id) {
-  var el = document.getElementById(id);
-  if (!el) return;
-  el.classList.add('open');
-  el.style.cssText = 'display:flex !important; position:fixed !important; inset:0 !important; z-index:99999 !important; background:rgba(0,0,0,0.5) !important; align-items:center !important; justify-content:center !important;';
+  var els = document.querySelectorAll('[id="' + id + '"]');
+  if (!els.length) els = [document.getElementById(id)];
+  els.forEach(function(el) {
+    if (!el) return;
+    el.classList.add('open');
+    el.style.display = 'flex';
+    el.style.position = 'fixed';
+    el.style.inset = '0';
+    el.style.zIndex = '99999';
+    el.style.background = 'rgba(0,0,0,0.5)';
+    el.style.alignItems = 'center';
+    el.style.justifyContent = 'center';
+  });
 }
 function closeModal(id) {
-  // Use querySelectorAll to find ALL elements with this id (handles duplicates)
-  document.querySelectorAll('[id="' + id + '"]').forEach(function(el) {
+  // Fecha TODOS os elementos com este id - via querySelectorAll
+  var found = document.querySelectorAll('[id="' + id + '"]');
+  found.forEach(function(el) {
     el.classList.remove('open');
-    el.style.cssText = 'display:none !important;';
+    el.style.display = 'none';
+    el.style.zIndex = '';
+    el.style.position = '';
+    el.style.inset = '';
+    el.style.background = '';
+    el.style.alignItems = '';
+    el.style.justifyContent = '';
   });
+  // Fallback: procura por qualquer modal aberto com este id
+  if (!found.length) {
+    var all = document.getElementsByClassName('modal-overlay');
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].id === id) {
+        all[i].classList.remove('open');
+        all[i].style.display = 'none';
+      }
+    }
+  }
 }
 
 // Fechar qualquer modal aberto ao pressionar ESC
@@ -9596,13 +9623,7 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-// Fechar ao clicar no backdrop (fora do .modal)
-document.addEventListener('click', function(e) {
-  if (e.target && e.target.classList && e.target.classList.contains('modal-overlay')) {
-    e.target.classList.remove('open');
-    e.target.style.cssText = 'display:none !important;';
-  }
-});
+// backdrop click removido — fecha só via botão ou ESC
 function closeModal(id) { g(id).classList.remove('open'); }
 // Modal click-outside handlers defined below in MODALS section
 
@@ -29131,6 +29152,7 @@ function baixarCombinacao(idxList) {
   selecionarCombinacao(idxList);
   setTimeout(function() { abrirBaixaAgrupada(); }, 150);
 }
+
 
 
 
