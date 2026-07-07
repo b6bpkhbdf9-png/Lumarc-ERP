@@ -6473,6 +6473,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
 
 
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -9585,11 +9586,38 @@ function openModal(id) {
   el.style.cssText = 'display:flex !important; position:fixed !important; inset:0 !important; z-index:99999 !important; background:rgba(0,0,0,0.5) !important; align-items:center !important; justify-content:center !important;';
 }
 function closeModal(id) {
+  // Try direct getElementById first
   var el = document.getElementById(id);
+  // Fallback: search all modals (handles case where id lookup fails after DOM move)
+  if (!el) {
+    document.querySelectorAll('.modal-overlay').forEach(function(m) {
+      if (m.id === id) el = m;
+    });
+  }
   if (!el) return;
   el.classList.remove('open');
   el.style.cssText = 'display:none !important;';
 }
+
+// Fechar qualquer modal aberto ao pressionar ESC
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay').forEach(function(m) {
+      if (m.style.display !== 'none' && m.style.display !== '') {
+        m.classList.remove('open');
+        m.style.cssText = 'display:none !important;';
+      }
+    });
+  }
+});
+
+// Fechar ao clicar no backdrop (fora do .modal)
+document.addEventListener('click', function(e) {
+  if (e.target && e.target.classList && e.target.classList.contains('modal-overlay')) {
+    e.target.classList.remove('open');
+    e.target.style.cssText = 'display:none !important;';
+  }
+});
 function closeModal(id) { g(id).classList.remove('open'); }
 // Modal click-outside handlers defined below in MODALS section
 
@@ -29140,6 +29168,7 @@ function baixarCombinacao(idxList) {
   selecionarCombinacao(idxList);
   setTimeout(function() { abrirBaixaAgrupada(); }, 150);
 }
+
 
 
 
