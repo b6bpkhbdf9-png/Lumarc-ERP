@@ -1497,31 +1497,58 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
 <!-- ===================== TAB: FINANCEIRO DASHBOARD ===================== -->
 <div id="tab-fin-dash" class="tab-content">
-<div class="main">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-    <h2 style="font-size:16px;font-weight:800">📊 Dashboard Financeiro</h2>
+<div style="padding:20px 24px 60px;max-width:1600px;margin:0 auto">
+
+  <!-- Cabeçalho -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <div>
+      <h2 style="font-size:18px;font-weight:800;margin:0">📊 Dashboard Financeiro</h2>
+      <p style="font-size:12px;color:var(--muted);margin:3px 0 0">Visão consolidada de receitas, despesas e fluxo de caixa</p>
+    </div>
     <div style="display:flex;gap:8px;align-items:center">
       <span style="font-size:12px;color:var(--muted)">Ano:</span>
-      <select id="findash-ano" onchange="renderFinDashboard()" style="width:90px"></select>
+      <select id="findash-ano" onchange="renderFinDashboard()" style="width:90px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--hbg);color:var(--text);font-size:13px"></select>
     </div>
   </div>
-  <div id="findash-kpis-row1" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:12px"></div>
-  <div id="findash-kpis-row2" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:20px"></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-    <div id="findash-saldo-atual-donut"></div>
-    <div id="findash-projecao-chart"></div>
+
+  <!-- ROW 1: 4 KPIs principais (receita, despesa, a receber, a pagar) -->
+  <div id="findash-kpis-row1" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px"></div>
+
+  <!-- ROW 2: 4 KPIs secundários (lucro, saldo caixas, liquidez, liquidez reduzida) -->
+  <div id="findash-kpis-row2" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px"></div>
+
+  <!-- ROW 3: Saldo atual (donut) | Projeção 30/60/90 dias (linha + valores) -->
+  <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;margin-bottom:20px;align-items:start">
+    <div id="findash-saldo-atual-donut" style="background:var(--hbg);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center"></div>
+    <div style="background:var(--hbg);border:1px solid var(--border);border-radius:10px;padding:20px">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:12px">Projeção de Saldo (30 / 60 / 90 dias)</div>
+      <div id="findash-projecao-chart"></div>
+      <div id="findash-projecao-kpis" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px"></div>
+    </div>
   </div>
-  <div id="findash-projecao-kpis" style="margin-bottom:16px"></div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-    <div id="findash-margem-donut"></div>
+
+  <!-- ROW 4: Gráfico de barras mensal (largura total) -->
+  <div style="background:var(--hbg);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px">
+    <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:12px">Receita × Despesa × Lucro por Mês</div>
     <div id="findash-bar-chart"></div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-    <div id="findash-donut-receita"></div>
-    <div id="findash-donut-despesa"></div>
+
+  <!-- ROW 5: Margem (donut) | % Orçamento Receita (donut) | % Orçamento Despesa (donut) | DRE -->
+  <div style="display:grid;grid-template-columns:180px 180px 180px 1fr;gap:16px;margin-bottom:20px;align-items:start">
+    <div id="findash-margem-donut" style="background:var(--hbg);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center"></div>
+    <div id="findash-donut-receita" style="background:var(--hbg);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center"></div>
+    <div id="findash-donut-despesa" style="background:var(--hbg);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center"></div>
+    <div id="findash-dre-table" style="background:var(--hbg);border:1px solid var(--border);border-radius:10px;padding:20px">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px">DRE Gerencial Resumido</div>
+    </div>
   </div>
-  <div id="findash-line-chart" style="margin-bottom:16px"></div>
-  <div id="findash-dre-table"></div>
+
+  <!-- ROW 6: Saldo acumulado por mês (linha) -->
+  <div style="background:var(--hbg);border:1px solid var(--border);border-radius:10px;padding:20px">
+    <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:12px">Saldo Acumulado ao Longo do Ano</div>
+    <div id="findash-line-chart"></div>
+  </div>
+
 </div>
 </div>
 
@@ -6436,6 +6463,8 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
 
 
+
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -7566,7 +7595,8 @@ var _planoExpandido = {};  // track which nodes are expanded {cod: true/false}
 
 function _findashSvgBarChart(meses, dataReceita, dataDespesa, dataLucro, width, height) {
   var padL = 44, padR = 10, padT = 10, padB = 24;
-  var chartW = width - padL - padR;
+  var _w = typeof width === 'number' ? width : 1000;
+  var chartW = _w - padL - padR;
   var chartH = height - padT - padB;
   var n = meses.length;
   var barGroupW = chartW / n;
@@ -7583,7 +7613,7 @@ function _findashSvgBarChart(meses, dataReceita, dataDespesa, dataLucro, width, 
   function yPos(v) { return zeroY - (v / maxAbs) * (chartH / 2); }
   function xPos(i) { return padL + i * barGroupW + barGroupW / 2; }
 
-  var svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" style="width:100%;height:' + height + 'px" xmlns="http://www.w3.org/2000/svg">';
+  var svg = '<svg width="100%" viewBox="0 0 ' + _w + ' ' + height + '" style="width:100%;height:' + height + 'px" xmlns="http://www.w3.org/2000/svg">';
 
   // Grid line at zero
   svg += '<line x1="' + padL + '" y1="' + zeroY + '" x2="' + (width - padR) + '" y2="' + zeroY + '" stroke="var(--border)" stroke-width="1"/>';
@@ -7611,7 +7641,8 @@ function _findashSvgBarChart(meses, dataReceita, dataDespesa, dataLucro, width, 
 
 function _findashSvgLineChart(labels, values, width, height, color) {
   var padL = 50, padR = 14, padT = 14, padB = 24;
-  var chartW = width - padL - padR;
+  var _w = typeof width === 'number' ? width : 800;
+  var chartW = _w - padL - padR;
   var chartH = height - padT - padB;
   var n = labels.length;
   var minV = Math.min.apply(null, values.concat([0]));
@@ -7622,7 +7653,7 @@ function _findashSvgLineChart(labels, values, width, height, color) {
   function xPos(i) { return padL + (n<=1?0:(i/(n-1)) * chartW); }
   function yPos(v) { return padT + chartH - ((v - minV)/range) * chartH; }
 
-  var svg = '<svg viewBox="0 0 ' + width + ' ' + height + '" style="width:100%;height:' + height + 'px" xmlns="http://www.w3.org/2000/svg">';
+  var svg = '<svg width="100%" viewBox="0 0 ' + _w + ' ' + height + '" style="width:100%;height:' + height + 'px" xmlns="http://www.w3.org/2000/svg">';
 
   // Y axis grid (3 lines)
   for (var g=0; g<=2; g++) {
@@ -7881,13 +7912,13 @@ function renderFinDashboard() {
 
     if (projChartEl) {
       var corLinha = '#3B82F6';
-      projChartEl.innerHTML = _findashSvgLineChart(projLabels, projValues, 620, 200, corLinha);
+      projChartEl.innerHTML = _findashSvgLineChart(projLabels, projValues, '100%', 180, corLinha);
     }
 
     if (projKpisEl) {
       function corProj(v) { return v >= 0 ? 'var(--green)' : 'var(--red)'; }
       projKpisEl.innerHTML =
-          '<div style="text-align:center;padding:8px;background:var(--bg);border-radius:8px">'
+          '<div style="text-align:center;padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">'
           + '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700">Em 30 dias</div>'
           + '<div style="font-size:16px;font-weight:800;color:'+corProj(proj30.saldoProjetado)+'">'+fmt(proj30.saldoProjetado)+'</div>'
           + '</div>'
@@ -7915,7 +7946,7 @@ function renderFinDashboard() {
   // ════════════════════════════════════════════════════════════════════════
   var barEl = g('findash-bar-chart');
   if (barEl) {
-    barEl.innerHTML = _findashSvgBarChart(mesesLabels, receitaPorMes, despesaPorMes, lucroPorMes, 620, 230)
+    barEl.innerHTML = _findashSvgBarChart(mesesLabels, receitaPorMes, despesaPorMes, lucroPorMes, '100%', 260)
       + '<div style="display:flex;gap:16px;justify-content:center;margin-top:6px;font-size:11px">'
       + '<span><span style="display:inline-block;width:10px;height:10px;background:#0F9B8E;border-radius:2px;margin-right:4px"></span>Total Receita</span>'
       + '<span><span style="display:inline-block;width:10px;height:10px;background:#F26D6D;border-radius:2px;margin-right:4px"></span>Total Despesas</span>'
@@ -7941,7 +7972,7 @@ function renderFinDashboard() {
   // ROW 4: Saldo projetado (linha) + DRE resumido
   // ════════════════════════════════════════════════════════════════════════
   var lineEl = g('findash-line-chart');
-  if (lineEl) lineEl.innerHTML = _findashSvgLineChart(mesesLabels, saldoPorMes, 460, 230, '#F5A623');
+  if (lineEl) lineEl.innerHTML = _findashSvgLineChart(mesesLabels, saldoPorMes, '100%', 200, '#F5A623');
 
   var dreEl = g('findash-dre-table');
   if (dreEl) {
@@ -29008,6 +29039,8 @@ function baixarCombinacao(idxList) {
   selecionarCombinacao(idxList);
   setTimeout(function() { abrirBaixaAgrupada(); }, 150);
 }
+
+
 
 
 
