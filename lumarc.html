@@ -7361,20 +7361,29 @@ function confirmarRefazerLancamentosFolha() {
   DB._tombstones = DB._tombstones || {};
   var tombstonesRemovidos = 0;
   Object.keys(DB._tombstones).forEach(function(id) {
-    if (id.startsWith('folha-') || id.startsWith('encargos-') ||
-        id.startsWith('encargos-fgts') || id.startsWith('encargos-inss') ||
-        id.startsWith('encargos-prov') || id.startsWith('vt-') || id.startsWith('vr-')) {
+    if (id.startsWith('folha-') || 
+        id.startsWith('encargos-') ||
+        id.startsWith('encargos-vt-') ||
+        id.startsWith('encargos-vr-') ||
+        id.startsWith('encargos-fgts') ||
+        id.startsWith('encargos-inss') ||
+        id.startsWith('encargos-prov') ||
+        id.startsWith('vt-') || 
+        id.startsWith('vr-')) {
       delete DB._tombstones[id];
       tombstonesRemovidos++;
     }
   });
 
   // Remover lançamentos automáticos existentes para recriar do zero
-  var antesCount = (DB.contasPagar||[]).length;
   DB.contasPagar = (DB.contasPagar||[]).filter(function(p) {
     var ehAuto = p.id && (
-      p.id.startsWith('folha-') || p.id.startsWith('encargos-') ||
-      p.id.startsWith('vt-') || p.id.startsWith('vr-')
+      p.id.startsWith('folha-') || 
+      p.id.startsWith('encargos-') ||
+      p.id.startsWith('encargos-vt-') ||
+      p.id.startsWith('encargos-vr-') ||
+      p.id.startsWith('vt-') || 
+      p.id.startsWith('vr-')
     );
     return !ehAuto;
   });
