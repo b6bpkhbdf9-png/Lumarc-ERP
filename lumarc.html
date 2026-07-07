@@ -6320,8 +6320,13 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
       <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:6px;padding:14px">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Composição do custo calculada</div>
         <div id="mf-breakdown" style="font-size:12px;display:grid;grid-template-columns:1fr 1fr;gap:4px 16px"></div>
-        <hr class
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
+
 
 
 
@@ -6640,7 +6645,7 @@ function buildItemCardHTML(item, cfg, open) {
   </div>
   <div class="item-orc-body${open?' open':''}" id="item-body-${item.id}">
 
-    <!-- TIPO -->
+    
     <div class="item-tipo-row">
       ${Object.entries(ITEM_TIPO).map(([k,v])=>`
         <button class="item-tipo-btn${item.tipo===k?' '+activeItemTipoClass(k):''}" onclick="setItemTipo(${item.id},'${k}')">${v.icon} ${v.label} <small style='opacity:.7'>${v.trib}</small></button>
@@ -6680,9 +6685,9 @@ function buildItemCardHTML(item, cfg, open) {
       </div>
     </div>
 
-    <!-- COMPOSIÇÃO DE CUSTOS -->
+    
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px">
-      <!-- MATÉRIA-PRIMA -->
+      
       <div>
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">📦 Matéria-Prima</div>
         <div class="tbl-wrap"><table class="dtbl">
@@ -6695,7 +6700,7 @@ function buildItemCardHTML(item, cfg, open) {
           <button class="btn btn-ghost btn-sm" onclick="addItemRowFromCatalog(${item.id},'mp')">🔩 Catálogo</button>
         </div>
       </div>
-      <!-- MÃO DE OBRA -->
+      
       <div>
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">👷 Mão de Obra</div>
         <div class="tbl-wrap"><table class="dtbl">
@@ -6708,7 +6713,7 @@ function buildItemCardHTML(item, cfg, open) {
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px">
-      <!-- MÁQUINAS -->
+      
       <div>
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">⚙️ Máquinas</div>
         <div class="tbl-wrap"><table class="dtbl">
@@ -6718,7 +6723,7 @@ function buildItemCardHTML(item, cfg, open) {
         </table></div>
         <div class="tbl-actions" style="margin-top:6px"><button class="btn btn-ghost btn-sm" onclick="addItemRow(${item.id},'maq')">+ Máquina</button></div>
       </div>
-      <!-- DESPESAS -->
+      
       <div>
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">📋 Despesas Adicionais</div>
         <div class="tbl-wrap"><table class="dtbl">
@@ -6730,7 +6735,7 @@ function buildItemCardHTML(item, cfg, open) {
       </div>
     </div>
 
-    <!-- PRECIFICAÇÃO DO ITEM -->
+    
     <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:10px">💰 Precificação do Item</div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;align-items:end">
@@ -6757,7 +6762,7 @@ function buildItemCardHTML(item, cfg, open) {
       </div>
     </div>
 
-    <!-- ADICIONAIS POR ITEM (override do global) -->
+    
     <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted)">⚡ Adicionais Trabalhistas deste Item</div>
@@ -6781,7 +6786,7 @@ function buildItemCardHTML(item, cfg, open) {
       </div>
     </div>
 
-    <!-- FOTOS DO ITEM: paste (Ctrl+V), arrastar ou selecionar arquivo -->
+    
     <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:8px">📷 Fotos de Referência do Item</div>
       <div id="item-${item.id}-fotos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:8px">
@@ -15380,7 +15385,7 @@ function exportPropostaComercial() {
   </style>
   <\/head><body><div class="page">
 
-  <!-- HEADER -->
+  
   <div class="header">
     <div class="header-left">
       ${logoHTML}
@@ -15399,7 +15404,7 @@ function exportPropostaComercial() {
     </div>
   </div>
 
-  <!-- CLIENTE -->
+  
   <div class="section-label">Dados do cliente</div>
   <div class="client-grid">
     <div class="client-cell"><div class="client-label">Razão Social</div><div class="client-val">${cliNome}</div></div>
@@ -15411,11 +15416,11 @@ function exportPropostaComercial() {
   </div>
 
   
-  <!-- ITENS -->
+  
   <div class="section-label">Escopo da proposta</div>
   ${itensHTML}
 
-  <!-- TOTAL -->
+  
   <div class="total-box">
     <div>
       <div class="total-label">Valor total da proposta</div>
@@ -15424,10 +15429,10 @@ function exportPropostaComercial() {
     <div class="total-val">${fmt2(totalPreco)}</div>
   </div>
 
-  <!-- CONDIÇÕES COMERCIAIS -->
+  
   ${conditions.length ? `<div class="section-label">Condições comerciais</div>${condHTML}` : ''}
 
-  <!-- ASSINATURAS -->
+  
   <div class="footer">
     <div class="foot-info">
       ${nomeEmp} — ${subEmp}<br>
@@ -28806,6 +28811,7 @@ function baixarCombinacao(idxList) {
   selecionarCombinacao(idxList);
   setTimeout(function() { abrirBaixaAgrupada(); }, 150);
 }
+
 
 
 
