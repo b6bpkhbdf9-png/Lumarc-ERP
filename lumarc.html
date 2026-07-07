@@ -1627,6 +1627,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
       </select>
       <button class="btn btn-ghost btn-sm" onclick="selecionarTodasCR()">☑ Selec. todas</button>
       <button class="btn btn-ghost btn-sm" onclick="limparSelecaoCR()">✕ Limpar</button>
+      <button class="btn btn-ghost btn-sm" onclick="diagnosticarDuplicatasFinanceiras()" title="Localiza e remove lançamentos duplicados" style="border-color:#7C3AED;color:#7C3AED">🔍 Verificar duplicatas</button>
       <button class="btn btn-primary" onclick="openReceberModal()">+ Novo lançamento</button>
     </div>
   </div>
@@ -6448,6 +6449,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 </div>
 
 <script>
+
 
 
 
@@ -16175,6 +16177,8 @@ let cloudCfg = {
   autoload:  true,
 };
 let cloudState = 'off';      // off | ok | err | sync | warn
+var _syncPollTimer   = null; // timer para polling de sync automático
+var _syncLastRemoteAt = null; // último timestamp remoto conhecido
 let cloudLastSaved   = null; // ISO timestamp of last successful push
 let cloudLastVersion = null; // version counter from JSONbin
 let autoSaveTimer    = null;
@@ -29050,6 +29054,7 @@ function baixarCombinacao(idxList) {
   selecionarCombinacao(idxList);
   setTimeout(function() { abrirBaixaAgrupada(); }, 150);
 }
+
 
 
 
