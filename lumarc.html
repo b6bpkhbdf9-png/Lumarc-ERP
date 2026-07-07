@@ -13190,6 +13190,7 @@ function agruparDuplicatas(arr, tipo) {
 }
 
 function diagnosticarDuplicatasFinanceiras() {
+  try {
   var gruposPagar   = agruparDuplicatas(DB.contasPagar, 'pagar');
   var gruposReceber = agruparDuplicatas(DB.contasReceber, 'receber');
   window._diagGruposPagar   = gruposPagar;
@@ -13261,6 +13262,12 @@ function diagnosticarDuplicatasFinanceiras() {
     _m.style.alignItems = 'center';
     _m.style.justifyContent = 'center';
     _m.classList.add('open');
+  } else {
+    alert('ERRO: modal-diag-duplicatas não encontrado no DOM');
+  }
+  } catch(err) {
+    alert('ERRO em diagnosticarDuplicatasFinanceiras: ' + err.message);
+    console.error(err);
   }
 }
 
