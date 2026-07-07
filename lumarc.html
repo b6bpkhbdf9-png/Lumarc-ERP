@@ -6330,6 +6330,8 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
 
 
+
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -16356,25 +16358,19 @@ async function cloudPull(manual) {
 // Re-renderiza a aba ativa após um pull, para que os dados novos apareçam
 // na tela sem o usuário precisar trocar de aba manualmente.
 function renderAfterSync(manual) {
-  try {
-    // Re-renderiza a aba/grupo ativo no momento
-    if (typeof activeGroup !== 'undefined') {
-      var grp = activeGroup;
-      if (grp === 'dash')  { typeof renderDashKPIs === 'function' && renderDashKPIs(); typeof renderDashOSRecentes === 'function' && renderDashOSRecentes(); }
-      if (grp === 'fin')   { typeof renderPagarTable === 'function' && renderPagarTable(); typeof renderReceberTable === 'function' && renderReceberTable(); typeof renderCaixas === 'function' && renderCaixas(); }
-      if (grp === 'cad')   { typeof renderFuncTable === 'function' && renderFuncTable(); typeof renderFornTable === 'function' && renderFornTable(); typeof renderCliTable === 'function' && renderCliTable(); typeof renderMaqTable === 'function' && renderMaqTable(); }
-      if (grp === 'orc')   { typeof renderListaOrc === 'function' && renderListaOrc(); typeof renderOSTab === 'function' && renderOSTab(); typeof renderRCTab === 'function' && renderRCTab(); typeof renderComprasTable === 'function' && renderComprasTable(); }
-      if (grp === 'alm')   { typeof renderAlmEstoque === 'function' && renderAlmEstoque(); }
-      if (grp === 'apo')   { typeof renderApontamentos === 'function' && renderApontamentos(); }
-      if (grp === 'qual')  { typeof renderNaoConformidades === 'function' && renderNaoConformidades(); }
-      if (grp === 'conf')  { typeof renderSyncDBStatus === 'function' && renderSyncDBStatus(); }
-    }
-    // Atualiza badge de RC sempre, independente da aba
-    typeof updateTopbarRCBadge === 'function' && updateTopbarRCBadge();
-    typeof updateTopbarAlerts  === 'function' && updateTopbarAlerts();
-  } catch(e) {
-    console.warn('[renderAfterSync] Erro ao re-renderizar:', e.message);
-  }
+  function _safe(fn) { try { typeof fn==='function' && fn(); } catch(e) { console.warn('[renderAfterSync]', e.message); } }
+  var grp = (typeof activeGroup !== 'undefined') ? activeGroup : '';
+
+  // dash: call renderDash (the parent that prepares params for renderDashKPIs)
+  if (grp === 'dash') { _safe(renderDashboard); _safe(renderDashFinKPIs); _safe(renderDashAlertas); }
+  if (grp === 'orc')  { _safe(renderListaOrc); _safe(renderOrcamentosTab); _safe(renderOSTab); _safe(renderFilaProducao); _safe(renderRCTab); _safe(renderComprasTable); _safe(renderAnaliseOS); _safe(renderComercial); }
+  if (grp === 'cad')  { _safe(renderCliTable); _safe(renderFornTable); _safe(renderProdTable); _safe(renderMatTable); _safe(renderFuncTable); _safe(renderMaqTable); _safe(renderDespTable); }
+  if (grp === 'fin')  { _safe(renderPagarTable); _safe(renderReceberTable); _safe(renderCaixas); _safe(renderConcTable); _safe(renderFluxo); _safe(renderDREGerencial); _safe(renderDashFinKPIs); }
+  if (grp === 'alm')  { _safe(renderAlmEstoque); _safe(renderAlmMov); _safe(renderAlmInv); _safe(renderAlmRecebimento); }
+  if (grp === 'apo')  { _safe(renderApontamentos); _safe(renderApoRelatorio); _safe(renderNaoConformidades); _safe(renderCargaMaquina); }
+  if (grp === 'conf') { _safe(renderUsuariosTab); _safe(renderSyncDBStatus); }
+  _safe(updateTopbarRCBadge);
+  _safe(updateTopbarAlerts);
 }
 
 // Registra mensagens no painel de log de sincronização (elemento #sync-log).
@@ -28811,6 +28807,8 @@ function baixarCombinacao(idxList) {
   selecionarCombinacao(idxList);
   setTimeout(function() { abrirBaixaAgrupada(); }, 150);
 }
+
+
 
 
 
