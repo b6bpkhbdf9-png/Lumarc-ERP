@@ -6476,6 +6476,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
 
 
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -9587,28 +9588,11 @@ function openModal(id) {
   });
 }
 function closeModal(id) {
-  // Fecha TODOS os elementos com este id - via querySelectorAll
   var found = document.querySelectorAll('[id="' + id + '"]');
   found.forEach(function(el) {
     el.classList.remove('open');
     el.style.display = 'none';
-    el.style.zIndex = '';
-    el.style.position = '';
-    el.style.inset = '';
-    el.style.background = '';
-    el.style.alignItems = '';
-    el.style.justifyContent = '';
   });
-  // Fallback: procura por qualquer modal aberto com este id
-  if (!found.length) {
-    var all = document.getElementsByClassName('modal-overlay');
-    for (var i = 0; i < all.length; i++) {
-      if (all[i].id === id) {
-        all[i].classList.remove('open');
-        all[i].style.display = 'none';
-      }
-    }
-  }
 }
 
 // Fechar qualquer modal aberto ao pressionar ESC
@@ -17615,12 +17599,12 @@ function updateTopbarUser(user) {
 
 function _moverModaisParaBody() {
   // Move todos os modais para filho direto do body
-  // Isso garante que position:fixed funcione corretamente
-  // independente de qualquer transform/filter no DOM pai
+  // Marca com data-moved para evitar processar duas vezes
   var modais = document.querySelectorAll('.modal-overlay');
   modais.forEach(function(m) {
-    if (m.parentElement !== document.body) {
+    if (!m.dataset.moved) {
       document.body.appendChild(m);
+      m.dataset.moved = '1';
     }
   });
 }
@@ -29152,6 +29136,7 @@ function baixarCombinacao(idxList) {
   selecionarCombinacao(idxList);
   setTimeout(function() { abrirBaixaAgrupada(); }, 150);
 }
+
 
 
 
