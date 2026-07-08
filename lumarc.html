@@ -1520,7 +1520,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
   <!-- ROW 3: Saldo atual (donut) | Projeção 30/60/90 dias (linha + valores) -->
   <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;margin-bottom:20px;align-items:start">
     <div id="findash-saldo-atual-donut" style="background:var(--hbg);border:1px solid var(--border);border-radius:10px;padding:20px;text-align:center"></div>
-    <div style="background:var(--hbg);border:1px solid var(--border);border-radius:10px;padding:20px">
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
       <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:12px">Projeção de Saldo (30 / 60 / 90 dias)</div>
       <div id="findash-projecao-chart"></div>
       <div id="findash-projecao-kpis" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px"></div>
@@ -1538,13 +1538,13 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
     <div id="findash-margem-donut" style="background:var(--hbg);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center"></div>
     <div id="findash-donut-receita" style="background:var(--hbg);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center"></div>
     <div id="findash-donut-despesa" style="background:var(--hbg);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center"></div>
-    <div id="findash-dre-table" style="background:var(--hbg);border:1px solid var(--border);border-radius:10px;padding:20px">
+    <div id="findash-dre-table" style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
       <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px">DRE Gerencial Resumido</div>
     </div>
   </div>
 
   <!-- ROW 6: Saldo acumulado por mês (linha) -->
-  <div style="background:var(--hbg);border:1px solid var(--border);border-radius:10px;padding:20px">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
     <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:12px">Saldo Acumulado ao Longo do Ano</div>
     <div id="findash-line-chart"></div>
   </div>
@@ -6441,13 +6441,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
       <hr class="div">
       <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:6px;padding:14px">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Composição do custo calculada</div>
-        <div id="mf-breakdown" style="font-size:12px;display:grid;grid-template-columns:1fr 1fr;gap:4px 16px"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
+        <div id="mf-breakdown" style="font-size:1
 
 
 
@@ -7717,10 +7711,10 @@ function _findashSvgDonut(pct, color, size, label, sublabel) {
 }
 
 function _findashKpiCard(icon, label, value, sublabel, color) {
-  return '<div style="background:var(--hbg);border:1px solid var(--border);border-radius:10px;padding:16px 18px;">'
-    + '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:.6px;margin-bottom:8px">' + icon + ' ' + label + '</div>'
-    + '<div style="font-size:20px;font-weight:800;color:' + (color||'var(--text)') + ';letter-spacing:-.5px">' + value + '</div>'
-    + (sublabel ? '<div style="font-size:11px;color:var(--muted);margin-top:4px">' + sublabel + '</div>' : '')
+  return '<div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,.06)">'
+    + '<div style="font-size:10px;color:#64748B;text-transform:uppercase;font-weight:700;letter-spacing:.6px;margin-bottom:8px">' + icon + ' ' + label + '</div>'
+    + '<div style="font-size:20px;font-weight:800;color:' + (color||'#0F172A') + ';letter-spacing:-.5px">' + value + '</div>'
+    + (sublabel ? '<div style="font-size:11px;color:#64748B;margin-top:4px">' + sublabel + '</div>' : '')
     + '</div>';
 }
 
@@ -7909,7 +7903,7 @@ function renderFinDashboard() {
     var proj90Preview = _calcularProjecaoSaldo(90);
     var tetoRef = Math.max(Math.abs(saldoCaixasAtual), Math.abs(proj90Preview.saldoProjetado), 1);
     var pctSaldoAtual = Math.min(100, Math.max(0, (saldoCaixasAtual / tetoRef) * 100));
-    var corSaldo = saldoCaixasAtual >= 0 ? '#0F9B8E' : '#DC2626';
+    var corSaldo = saldoCaixasAtual >= 0 ? '#16A34A' : '#DC2626';
     saldoAtualDonutEl.innerHTML = _findashSvgDonut(pctSaldoAtual, corSaldo, 140, null, null)
       .replace('">' + Math.round(pctSaldoAtual) + '%<', '">' + fmt(saldoCaixasAtual).replace('R$','') + '<')
       + '<div style="font-size:11px;color:var(--muted);margin-top:8px">Soma de todas as Caixas Virtuais</div>'
@@ -7934,15 +7928,15 @@ function renderFinDashboard() {
     if (projKpisEl) {
       function corProj(v) { return v >= 0 ? 'var(--green)' : 'var(--red)'; }
       projKpisEl.innerHTML =
-          '<div style="text-align:center;padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">'
+          '<div style="text-align:center;padding:12px;background:var(--panel);border-radius:8px;border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.06)">'
           + '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700">Em 30 dias</div>'
           + '<div style="font-size:16px;font-weight:800;color:'+corProj(proj30.saldoProjetado)+'">'+fmt(proj30.saldoProjetado)+'</div>'
           + '</div>'
-          + '<div style="text-align:center;padding:8px;background:var(--bg);border-radius:8px">'
+          + '<div style="text-align:center;padding:8px;background:var(--panel);border-radius:8px;border:1px solid var(--border)">'
           + '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700">Em 60 dias</div>'
           + '<div style="font-size:16px;font-weight:800;color:'+corProj(proj60.saldoProjetado)+'">'+fmt(proj60.saldoProjetado)+'</div>'
           + '</div>'
-          + '<div style="text-align:center;padding:8px;background:var(--bg);border-radius:8px">'
+          + '<div style="text-align:center;padding:8px;background:var(--panel);border-radius:8px;border:1px solid var(--border)">'
           + '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700">Em 90 dias</div>'
           + '<div style="font-size:16px;font-weight:800;color:'+corProj(proj90.saldoProjetado)+'">'+fmt(proj90.saldoProjetado)+'</div>'
           + '</div>';
@@ -15191,7 +15185,11 @@ function applyLogo() {
   if (companyLogo) {
     // Topbar
     if (logoArea) {
-      logoArea.innerHTML = `<div class="topbar-logo-img-wrap"><img src="${companyLogo}" class="topbar-logo-img" alt="Logo"></div>`;
+      var _empName = (DB && DB.config) ? (DB.config.fantasia || DB.config.empresa || '') : '';
+      logoArea.innerHTML = '<div class="topbar-logo-img-wrap" style="display:flex;flex-direction:column;align-items:center;gap:2px">'
+        + '<img src="' + companyLogo + '" class="topbar-logo-img" alt="Logo" style="max-height:40px;object-fit:contain">'
+        + (_empName ? '<span style="font-size:9px;font-weight:700;color:var(--htext);opacity:.8;letter-spacing:.3px;white-space:nowrap">' + _empName + '</span>' : '')
+        + '</div>';
     }
     // Personalização panel preview
     if (previewImg) previewImg.src = companyLogo;
@@ -29190,6 +29188,49 @@ CRSelecao();
 function baixarCombinacao(idxList) {
   // Select and immediately open bulk baixa modal
   selecionarCombinacao(idxList);
+  setTimeout(function() { abrirBaixaAgrupada(); }, 150);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+binacao(idxList);
   setTimeout(function() { abrirBaixaAgrupada(); }, 150);
 }
 
