@@ -1557,7 +1557,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 <div class="main">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
     <div>
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div><h2 style="font-size:16px;font-weight:800">Contas a Pagar</h2><p style="font-size:12px;color:var(--muted);margin-top:3px">Controle de despesas, fornecedores e obrigações financeiras.</p></div><div style="display:flex;align-items:center;gap:6px;background:var(--hbg);border:1px solid var(--border);border-radius:8px;padding:4px 10px"><span style="font-size:11px;color:var(--muted);font-weight:600">Horizonte:</span><select id="pagar-periodo" onchange="renderPagarTable()" style="border:none;background:transparent;color:var(--text);font-size:12px;font-weight:600;cursor:pointer"><option value="">Todos</option><option value="5">5 dias</option><option value="15">15 dias</option><option value="30" selected>30 dias</option><option value="45">45 dias</option><option value="60">60 dias</option><option value="90">90 dias</option></select></div></div>
+      <div style="display:flex;align-items:center;gap:12px"><div><h2 style="font-size:16px;font-weight:800">Contas a Pagar</h2><p style="font-size:12px;color:var(--muted);margin-top:3px">Controle de despesas, fornecedores e obrigações financeiras.</p></div><div style="display:flex;align-items:center;gap:6px;background:var(--hbg);border:1px solid var(--border);border-radius:8px;padding:4px 10px"><span style="font-size:11px;color:var(--muted);font-weight:600">Horizonte:</span><select id="pagar-periodo" onchange="renderPagarTable()" style="border:none;background:transparent;color:var(--text);font-size:12px;font-weight:600"><option value="">Todos</option><option value="5">5 dias</option><option value="15">15 dias</option><option value="30" selected>30 dias</option><option value="45">45 dias</option><option value="60">60 dias</option><option value="90">90 dias</option></select></div></div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <input type="text" id="pagar-search" placeholder="🔍 Buscar..." style="width:180px" oninput="renderPagarTable()">
@@ -1615,7 +1615,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 <div class="main">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
     <div>
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div><h2 style="font-size:16px;font-weight:800">Contas a Receber</h2><p style="font-size:12px;color:var(--muted);margin-top:3px">Ao registrar recebimento, os valores são distribuídos automaticamente nas Caixas Virtuais.</p></div><div style="display:flex;align-items:center;gap:6px;background:var(--hbg);border:1px solid var(--border);border-radius:8px;padding:4px 10px"><span style="font-size:11px;color:var(--muted);font-weight:600">Horizonte:</span><select id="receber-periodo" onchange="renderReceberTable()" style="border:none;background:transparent;color:var(--text);font-size:12px;font-weight:600;cursor:pointer"><option value="">Todos</option><option value="5">5 dias</option><option value="15">15 dias</option><option value="30" selected>30 dias</option><option value="45">45 dias</option><option value="60">60 dias</option><option value="90">90 dias</option></select></div></div>
+      <div style="display:flex;align-items:center;gap:12px"><div><h2 style="font-size:16px;font-weight:800">Contas a Receber</h2><p style="font-size:12px;color:var(--muted);margin-top:3px">Ao registrar recebimento, os valores são distribuídos automaticamente nas Caixas Virtuais.</p></div><div style="display:flex;align-items:center;gap:6px;background:var(--hbg);border:1px solid var(--border);border-radius:8px;padding:4px 10px"><span style="font-size:11px;color:var(--muted);font-weight:600">Horizonte:</span><select id="receber-periodo" onchange="renderReceberTable()" style="border:none;background:transparent;color:var(--text);font-size:12px;font-weight:600"><option value="">Todos</option><option value="5">5 dias</option><option value="15">15 dias</option><option value="30" selected>30 dias</option><option value="45">45 dias</option><option value="60">60 dias</option><option value="90">90 dias</option></select></div></div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <input type="text" id="receber-search" placeholder="🔍 Buscar..." style="width:180px" oninput="renderReceberTable()">
@@ -1627,8 +1627,6 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
       <button class="btn btn-ghost btn-sm" onclick="limparSelecaoCR()">✕ Limpar</button>
       <button class="btn btn-ghost btn-sm" onclick="diagnosticarDuplicatasFinanceiras()" title="Localiza e remove lançamentos duplicados" style="border-color:#7C3AED;color:#7C3AED">🔍 Verificar duplicatas</button>
       <button class="btn btn-ghost btn-sm" onclick="abrirResetContas('receber')" title="Remove todos os lançamentos de contas a receber" style="border-color:#DC2626;color:#DC2626">🗑️ Resetar contas</button>
-      <button class="btn btn-ghost btn-sm" onclick="diagnosticarDuplicatasFinanceiras()" style="border-color:#7C3AED;color:#7C3AED">🔍 Verificar duplicatas</button>
-      <button class="btn btn-ghost btn-sm" onclick="abrirResetContas('receber')" style="border-color:#DC2626;color:#DC2626">🗑️ Resetar contas</button>
       <button class="btn btn-primary" onclick="openReceberModal()">+ Novo lançamento</button>
     </div>
   </div>
@@ -6430,12 +6428,59 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
             <option value="lucro">Lucro Presumido/Real</option>
           </select>
         </div>
-        <div class="form-group"><label>Salário Base (R$)</label><div class="ip-group"></div></div></div>
-</div></div></div>
+        <div class="form-group"><label>Salário Base (R$)</label><div class="ip-group"><span class="ip-pre">R$</span><input type="number" id="mf-sal" value="0" min="0" step="50" oninput="calcFuncCusto()"></div></div>
+        <div class="form-group"><label>Vale Transporte líq./mês (R$)</label><div class="ip-group"><span class="ip-pre">R$</span><input type="number" id="mf-vt" value="200" min="0" step="10" oninput="calcFuncCusto()"></div></div>
+        <div class="form-group"><label>Vale Refeição/mês (R$)</label><div class="ip-group"><span class="ip-pre">R$</span><input type="number" id="mf-vr" value="440" min="0" step="10" oninput="calcFuncCusto()"></div></div>
+        <div class="form-group"><label>Outros Benefícios/mês (R$)</label><div class="ip-group"><span class="ip-pre">R$</span><input type="number" id="mf-outros" value="0" min="0" step="10" oninput="calcFuncCusto()"></div></div>
+        <div class="form-group"><label>Horas produtivas/mês</label><input type="number" id="mf-hprod" value="160" min="80" max="220" step="1" oninput="calcFuncCusto()">
+          <small style="font-size:10px;color:var(--muted)">Recomendado: 150–170h (desconta férias, feriados, setup)</small></div>
+        <div class="form-group"><label>Status</label>
+          <select id="mf-status"><option value="ativo">Ativo</option><option value="ferias">Férias</option><option value="inativo">Inativo</option></select>
+        </div>
+      </div>
+      <hr class="div">
+      <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:6px;padding:14px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Composição do custo calculada</div>
+        <div id="mf-breakdown" style="font-size:12px;display:grid;grid-template-columns:1fr 1fr;gap:4px 16px"></div>
+      </div>
+    </div>
+  </div>
 </div>
-</div><!-- /app-root -->
 
 <script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -7672,9 +7717,9 @@ function _findashSvgDonut(pct, color, size, label, sublabel) {
 }
 
 function _findashKpiCard(icon, label, value, sublabel, color) {
-  return '<div style="background:var(--hbg);border:1px solid var(--border);border-radius:10px;padding:16px 18px">'
-    + '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:8px">' + icon + ' ' + label + '</div>'
-    + '<div style="font-size:20px;font-weight:800;color:' + (color||'var(--text)') + '">' + value + '</div>'
+  return '<div class="d-card" style="padding:14px 16px">'
+    + '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:6px">' + label + '</div>'
+    + '<div style="font-size:22px;font-weight:800;color:' + (color||'var(--text)') + '">' + value + '</div>'
     + (sublabel ? '<div style="font-size:10.5px;color:var(--muted);margin-top:3px">' + sublabel + '</div>' : '')
     + '</div>';
 }
@@ -13340,8 +13385,7 @@ function renderPagarTable() {
 
   // KPIs
   const all = DB.contasPagar||[];
-  const _pp=parseInt(g('pagar-periodo')?.value||'0')||0,_pl=_pp?new Date(now.getTime()+_pp*864e5):null;
-  const totalPend=all.filter(p=>{if(p.status!=='Pendente'&&p.status!=='Pago parcial')return false;if(_pl&&p.venc&&new Date(p.venc+'T23:59:59')>_pl)return false;return true;}).reduce((s,p)=>s+((p.valor||0)-(p.pago||0)),0);
+  const totalPend = all.filter(p=>p.status==='Pendente'||p.status==='Pago parcial').reduce((s,p)=>s+(p.valor-p.pago),0);
   const totalVenc = all.filter(p=>p.venc && new Date(p.venc+'T23:59:59')<now && p.status!=='Pago'&&p.status!=='Cancelado').reduce((s,p)=>s+(p.valor-p.pago),0);
   const totalPago = all.reduce((s,p)=>s+(parseFloat(p.pago)||0),0);
   const totalMes = all.filter(p=>{ if(!p.venc)return false; const d=new Date(p.venc+'T12:00:00'); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); }).reduce((s,p)=>s+(p.valor||0),0);
@@ -16203,9 +16247,6 @@ let cloudCfg = {
   autosave:  true,
   autoload:  true,
 };
-var _syncPollTimer=null;
-var _syncPollActive=false;
-var _syncLastRemoteAt=null;
 let cloudState = 'off';      // off | ok | err | sync | warn
 var _syncPollTimer   = null; // timer para polling de sync automático
 var _syncPollActive   = false; // flag de polling ativo
@@ -29085,54 +29126,6 @@ function sugerirCodigoFilho() {
   if (pai_conta && g('pcm-tipo')) g('pcm-tipo').value = pai_conta.tipo;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function limparConciliador() {
   var v = g('concil-valor');
   if (v) v.value = '';
@@ -29229,12 +29222,433 @@ function baixarCombinacao(idxList) {
 
 
 
-
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){document.querySelectorAll('.modal-overlay').forEach(function(m){if(m.style.display==='flex'){m.classList.remove('open');m.style.display='none';}});}});
-
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){document.querySelectorAll('.modal-overlay').forEach(function(m){if(m.style.display==='flex'){m.classList.remove('open');m.style.display='none';}});}});
-
 </script>
+</div><!-- /app-root -->
+
+</div>
+
+<!-- ===== MODAL: BAIXA AGRUPADA CONTAS A RECEBER ===== -->
+<div class="modal-overlay" id="modal-baixa-agrupada">
+  <div class="modal" style="width:600px">
+    <div class="modal-hdr">
+      <div class="modal-title">✅ Baixa Agrupada — Contas a Receber</div>
+      <button class="modal-close" onclick="closeModal('modal-baixa-agrupada')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="bag-ids">
+      <input type="hidden" id="bag-totalval">
+      <!-- Resumo -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+        <div style="background:var(--accent-light);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:3px">Lançamentos</div>
+          <div style="font-size:22px;font-weight:800;color:var(--accent)" id="bag-count">0</div>
+        </div>
+        <div style="background:#D1FAE5;border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:3px">Total a receber</div>
+          <div style="font-size:18px;font-weight:800;color:#065F46;font-family:var(--mono)" id="bag-total">R$ 0,00</div>
+        </div>
+        <div style="background:#EDE9FE;border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:3px">Saldo após baixa</div>
+          <div style="font-size:18px;font-weight:800;color:#5B21B6;font-family:var(--mono)" id="bag-saldo-depois">R$ 0,00</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Cliente(s): <strong id="bag-cliente"></strong></div>
+      <!-- Lista de selecionados -->
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;max-height:180px;overflow-y:auto;margin-bottom:14px" id="bag-lista"></div>
+      <!-- Distribuição nas caixas -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Distribuição nas caixas virtuais</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px" id="bag-distrib-preview"></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Data do recebimento</label>
+          <input type="date" id="bag-data">
+        </div>
+        <div class="form-group">
+          <label>Observação (opcional)</label>
+          <input type="text" id="bag-obs" placeholder="Ex: Depósito referente às NFs de junho">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn btn-ghost" onclick="closeModal('modal-baixa-agrupada')">Cancelar</button>
+      <button class="btn btn-green" onclick="confirmarBaixaAgrupada()">✅ Confirmar baixa de todos os selecionados</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: BAIXA AGRUPADA CONTAS A PAGAR ===== -->
+<div class="modal-overlay" id="modal-baixa-agrupada-cp">
+  <div class="modal" style="width:600px">
+    <div class="modal-hdr">
+      <div class="modal-title">✅ Baixa Agrupada — Contas a Pagar</div>
+      <button class="modal-close" onclick="closeModal('modal-baixa-agrupada-cp')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="bagcp-ids">
+      <input type="hidden" id="bagcp-totalval">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+        <div style="background:var(--accent-light);border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:3px">Lançamentos</div>
+          <div style="font-size:22px;font-weight:800;color:var(--accent)" id="bagcp-count">0</div>
+        </div>
+        <div style="background:#FEE2E2;border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:3px">Total a pagar</div>
+          <div style="font-size:18px;font-weight:800;color:#991B1B;font-family:var(--mono)" id="bagcp-total">R$ 0,00</div>
+        </div>
+        <div style="background:#EDE9FE;border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:3px">Saldo após pagamento</div>
+          <div style="font-size:18px;font-weight:800;color:#5B21B6;font-family:var(--mono)" id="bagcp-saldo-depois">R$ 0,00</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Fornecedor(es): <strong id="bagcp-forn"></strong></div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;max-height:180px;overflow-y:auto;margin-bottom:14px" id="bagcp-lista"></div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Data do pagamento</label>
+          <input type="date" id="bagcp-data">
+        </div>
+        <div class="form-group">
+          <label>Observação (opcional)</label>
+          <input type="text" id="bagcp-obs" placeholder="Ex: Pagamento via TED">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn btn-ghost" onclick="closeModal('modal-baixa-agrupada-cp')">Cancelar</button>
+      <button class="btn btn-green" onclick="confirmarBaixaAgrupadaCP()">✅ Confirmar pagamento de todos os selecionados</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: PLANO DE CONTAS — NOVA / EDITAR CONTA ===== -->
+<div class="modal-overlay" id="modal-plano-conta">
+  <div class="modal" style="width:500px">
+    <div class="modal-hdr">
+      <div class="modal-title" id="pcm-title">Nova conta</div>
+      <button class="modal-close" onclick="closeModal('modal-plano-conta')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pcm-edit-cod">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Código <span style="color:var(--muted);font-size:10px">Ex: 2.1.7</span></label>
+          <input type="text" id="pcm-cod" placeholder="1.1.1" style="font-family:var(--mono);font-weight:700;font-size:15px"
+                 oninput="this.value=this.value.replace(/[^0-9.]/g,'')">
+          <div id="pcm-cod-hint" style="font-size:10px;color:var(--muted);margin-top:3px"></div>
+        </div>
+        <div class="form-group">
+          <label>Conta pai <span style="color:var(--muted);font-size:10px">código da conta pai</span></label>
+          <div style="display:flex;gap:6px">
+            <input type="text" id="pcm-pai" placeholder="Ex: 2.1" style="font-family:var(--mono);flex:1"
+                   oninput="sugerirCodigoFilho()">
+            <button class="btn btn-ghost btn-sm" onclick="sugerirCodigoFilho()" title="Sugerir próximo código">💡</button>
+          </div>
+        </div>
+        <div class="form-group full">
+          <label>Nome da conta</label>
+          <input type="text" id="pcm-nome" placeholder="Ex: Aço 1020">
+        </div>
+        <div class="form-group">
+          <label>Tipo</label>
+          <select id="pcm-tipo">
+            <option value="receita">Receita</option>
+            <option value="custo">Custo Direto</option>
+            <option value="despesa">Despesa</option>
+            <option value="tributo">Tributo</option>
+            <option value="investimento">Investimento</option>
+            <option value="socio">Sócios</option>
+          </select>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;padding-top:20px">
+          <input type="checkbox" id="pcm-ativa" checked style="width:16px;height:16px">
+          <label for="pcm-ativa">Conta ativa</label>
+        </div>
+        <div class="form-group full">
+          <label>Observação <span style="color:var(--muted);font-size:10px">opcional</span></label>
+          <input type="text" id="pcm-obs" placeholder="Descrição adicional...">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn btn-ghost" onclick="closeModal('modal-plano-conta')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarConta()">💾 Salvar conta</button>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ===== MODAL: REVISÃO DE ENGENHARIA ===== -->
+<div class="modal-overlay" id="modal-eng-revisao">
+  <div class="modal" style="width:900px;max-height:94vh;display:flex;flex-direction:column">
+    <div class="modal-hdr">
+      <div class="modal-title" id="eng-revisao-title">📐 Revisão de Engenharia</div>
+      <button class="modal-close" onclick="closeModal('modal-eng-revisao')">×</button>
+    </div>
+    <div class="modal-body" style="flex:1;overflow:hidden;display:flex;flex-direction:column;padding:0">
+
+      <!-- OS info bar -->
+      <div id="eng-revisao-info" style="padding:14px 20px;background:var(--bg);border-bottom:1px solid var(--border);flex-shrink:0"></div>
+
+      <!-- Tab nav -->
+      <div style="display:flex;border-bottom:1px solid var(--border);background:var(--panel);flex-shrink:0">
+        <button class="eng-tab-btn active" data-tab="eng-tab-orc" onclick="switchEngTab(this)">📋 Orçamento completo</button>
+        <button class="eng-tab-btn" data-tab="eng-tab-maquinas" onclick="switchEngTab(this)">⚙️ Máquinas e ferramentas</button>
+        <button class="eng-tab-btn" data-tab="eng-tab-roteiro" onclick="switchEngTab(this)">🔀 Roteiro de fabricação</button>
+        <button class="eng-tab-btn" data-tab="eng-tab-compras" onclick="switchEngTab(this)">🛒 Lista de compras</button>
+      </div>
+
+      <!-- Tab bodies -->
+      <div style="flex:1;overflow-y:auto">
+
+        <!-- ABA 1: Orçamento completo -->
+        <div id="eng-tab-orc" class="eng-tab-body" style="padding:16px 20px">
+          <div id="eng-orc-body"></div>
+        </div>
+
+        <!-- ABA 2: Máquinas e ferramentas -->
+        <div id="eng-tab-maquinas" class="eng-tab-body" style="padding:16px 20px;display:none">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px">
+            Para cada máquina prevista no orçamento, defina as ferramentas, suportes, insertos, brocas e instrumentos necessários.
+          </div>
+          <div id="eng-maq-body"></div>
+        </div>
+
+        <!-- ABA 3: Roteiro de fabricação -->
+        <div id="eng-tab-roteiro" class="eng-tab-body" style="padding:16px 20px;display:none">
+          <div id="eng-roteiro-status"></div>
+          <div id="eng-roteiro-body"></div>
+        </div>
+
+        <!-- ABA 4: Lista de compras (resumo final) -->
+        <div id="eng-tab-compras" class="eng-tab-body" style="padding:16px 20px;display:none">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px">
+            Resumo do que será gerado na Requisição de Compra. Desmarque itens que NÃO devem ser comprados.
+          </div>
+          <div id="eng-compras-body"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="modal-footer" style="justify-content:space-between;flex-shrink:0;border-top:1px solid var(--border)">
+      <button class="btn btn-ghost" onclick="closeModal('modal-eng-revisao')">Cancelar</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="eng-revisao-status-msg" style="font-size:12px;color:var(--muted)"></span>
+        <button class="btn btn-primary" id="eng-revisao-confirmar"
+                style="background:#7C3AED;border-color:#7C3AED;padding:9px 20px">
+          ✅ Confirmar revisão → Liberar para Compra
+        </button>
+      </div>
+    </div>
+  </div>
+
+<!-- ===== MODAL: DIAGNÓSTICO DE DUPLICATAS FINANCEIRAS ===== -->
+<div class="modal-overlay" id="modal-diag-duplicatas">
+  <div class="modal" style="width:640px">
+    <div class="modal-hdr">
+      <div class="modal-title">🔍 Verificar Duplicatas Financeiras</div>
+      <button class="modal-close" onclick="closeModal('modal-diag-duplicatas')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="notice" style="margin-bottom:12px">
+        Identifica lançamentos duplicados em Contas a Pagar e Contas a Receber — mesmo valor, mesma descrição e data próxima (±3 dias).
+      </div>
+      <div id="diag-dup-body" style="max-height:380px;overflow-y:auto;font-size:12px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-diag-duplicatas')">Fechar</button>
+      <button class="btn btn-danger" id="diag-dup-remover-btn" style="display:none">🗑 Remover duplicatas</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: REFAZER LANÇAMENTOS DE FOLHA ===== -->
+<div class="modal-overlay" id="modal-refazer-folha">
+  <div class="modal" style="width:520px">
+    <div class="modal-hdr">
+      <div class="modal-title">🔄 Refazer Lançamentos de Folha</div>
+      <button class="modal-close" onclick="closeModal('modal-refazer-folha')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="notice" style="margin-bottom:14px">
+        Remove todos os lançamentos automáticos de folha (salários, encargos, VT, VR) a partir da data de corte e os recria com os valores atuais dos funcionários.
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px">Data de corte (lançamentos a partir desta data serão refeitos):</label>
+        <input type="date" id="refazer-folha-corte" style="width:200px">
+      </div>
+      <div id="refazer-folha-preview" style="font-size:12px;color:var(--muted);padding:10px;background:var(--bg);border-radius:6px;border:1px solid var(--border)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-refazer-folha')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarRefazerLancamentosFolha()" style="background:#0F766E;border-color:#0F766E">✅ Refazer lançamentos</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: RESETAR CONTAS ===== -->
+<div class="modal-overlay" id="modal-reset-contas">
+  <div class="modal" style="width:540px">
+    <div class="modal-hdr">
+      <div class="modal-title" id="reset-contas-title">🗑️ Resetar Contas</div>
+      <button class="modal-close" onclick="closeModal('modal-reset-contas')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="notice notice-danger" style="margin-bottom:14px;border-color:#DC2626;background:rgba(220,38,38,.08)">
+        ⚠️ Esta ação é irreversível. Todos os lançamentos serão excluídos permanentemente.
+      </div>
+      <div id="reset-contas-resumo" style="margin-bottom:14px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-reset-contas')">Cancelar</button>
+      <button id="reset-contas-confirmar-btn" class="btn btn-danger" onclick="confirmarResetContas()" style="background:#DC2626;border-color:#DC2626">🗑️ Confirmar reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: DETALHE KPI FINANCEIRO ===== -->
+<div class="modal-overlay" id="modal-detalhe-kpi">
+  <div class="modal" style="width:680px;max-height:80vh;display:flex;flex-direction:column">
+    <div class="modal-hdr">
+      <div class="modal-title" id="detalhe-kpi-title">Detalhamento</div>
+      <button class="modal-close" onclick="closeModal('modal-detalhe-kpi')">×</button>
+    </div>
+    <div class="modal-body" style="flex:1;overflow-y:auto">
+      <div id="detalhe-kpi-criterio" style="font-size:11px;color:var(--muted);background:var(--bg);padding:10px 12px;border-radius:6px;margin-bottom:14px;line-height:1.6"></div>
+      <table class="data-table" style="font-size:12px">
+        <thead><tr>
+          <th>Descrição</th><th>Vencimento</th><th>Valor</th><th>Pago/Recebido</th><th>Saldo</th><th>Status</th>
+        </tr></thead>
+        <tbody id="detalhe-kpi-body"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <div style="font-size:13px;font-weight:700">Total: <span id="detalhe-kpi-total" style="color:var(--accent)">—</span></div>
+      <button class="btn btn-ghost" onclick="closeModal('modal-detalhe-kpi')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: MÁQUINA ===== -->
+<div class="modal-overlay" id="modal-maq">
+  <div class="modal" style="width:560px">
+    <div class="modal-hdr">
+      <div class="modal-title" id="mm-title">Nova Máquina</div>
+      <button class="modal-close" onclick="closeModal('modal-maq')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Nome</label><input type="text" id="mm-nome" placeholder="Ex: Torno CNC Nardini"></div>
+        <div class="form-group"><label>Categoria</label>
+          <select id="mm-cat"><option value="usinagem">Usinagem</option><option value="soldagem">Soldagem</option><option value="caldeiraria">Caldeiraria</option><option value="corte">Corte</option><option value="outro">Outro</option></select>
+        </div>
+        <div class="form-group"><label>Valor (R$)</label><input type="number" id="mm-val" placeholder="0,00" step="0.01"></div>
+        <div class="form-group"><label>Potência (kW)</label><input type="number" id="mm-kw" placeholder="0" step="0.1"></div>
+        <div class="form-group"><label>Horas produtivas/dia</label><input type="number" id="mm-hprod" placeholder="8" step="0.5"></div>
+        <div class="form-group"><label>Vida útil (anos)</label><input type="number" id="mm-vida" placeholder="10"></div>
+        <div class="form-group"><label>Tarifa energia (R$/kWh)</label><input type="number" id="mm-tarifa" placeholder="0.75" step="0.01"></div>
+        <div class="form-group"><label>Tipo de uso</label>
+          <select id="mm-tipo-uso"><option value="direto">Direto (produção)</option><option value="indireto">Indireto (apoio)</option></select>
+        </div>
+        <div class="form-group"><label>Status</label>
+          <select id="mm-status"><option value="ativo">Ativo</option><option value="inativo">Inativo</option><option value="manutencao">Em manutenção</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-maq')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveMaq()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: DESPESA FIXA ===== -->
+<div class="modal-overlay" id="modal-desp">
+  <div class="modal" style="width:500px">
+    <div class="modal-hdr">
+      <div class="modal-title" id="md-title">Nova Despesa</div>
+      <button class="modal-close" onclick="closeModal('modal-desp')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Descrição</label><input type="text" id="md-desc" placeholder="Ex: Aluguel do galpão"></div>
+        <div class="form-group"><label>Categoria</label>
+          <select id="md-cat">
+            <option value="Aluguel">Aluguel</option><option value="Energia">Energia</option>
+            <option value="Folha">Folha de Pagamento</option><option value="Impostos">Impostos</option>
+            <option value="Manutenção">Manutenção</option><option value="Administrativo">Administrativo</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Valor (R$)</label><input type="number" id="md-val" placeholder="0,00" step="0.01"></div>
+        <div class="form-group"><label>Mês</label>
+          <select id="md-mes"><option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option></select>
+        </div>
+        <div class="form-group"><label>Ano</label><input type="number" id="md-ano" placeholder="2026"></div>
+        <div class="form-group"><label>Recorrente</label>
+          <select id="md-rec"><option value="nao">Não</option><option value="sim">Sim (todo mês)</option></select>
+        </div>
+        <div class="form-group" style="grid-column:1/-1"><label>Observação</label><input type="text" id="md-obs" placeholder="Opcional"></div>
+        <input type="hidden" id="desp-mes"><input type="hidden" id="desp-ano">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-desp')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveDesp()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: TRANSFERÊNCIA ENTRE CAIXAS ===== -->
+<div class="modal-overlay" id="modal-transferencia-caixa">
+  <div class="modal" style="width:480px">
+    <div class="modal-hdr">
+      <div class="modal-title">↔️ Transferência entre Caixas</div>
+      <button class="modal-close" onclick="closeModal('modal-transferencia-caixa')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Origem</label><select id="transf-origem"></select></div>
+        <div class="form-group"><label>Destino</label><select id="transf-destino"></select></div>
+        <div class="form-group"><label>Valor (R$)</label><input type="number" id="transf-valor" placeholder="0,00" step="0.01"></div>
+        <div class="form-group"><label>Data</label><input type="date" id="transf-data"></div>
+        <div class="form-group"><label>Motivo</label><input type="text" id="transf-motivo" placeholder="Ex: Reposição de caixa"></div>
+        <div class="form-group" style="grid-column:1/-1"><label>Observação</label><input type="text" id="transf-obs" placeholder="Opcional"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-transferencia-caixa')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarTransferenciaCaixa()">💾 Transferir</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: RECEBER PC ===== -->
+<div class="modal-overlay" id="modal-receber-pc">
+  <div class="modal" style="width:600px">
+    <div class="modal-hdr">
+      <div class="modal-title">📦 Recebimento de Material</div>
+      <button class="modal-close" onclick="closeModal('modal-receber-pc')">×</button>
+    </div>
+    <div class="modal-body" id="receber-pc-body">
+      <p style="color:var(--muted);text-align:center;padding:20px">Selecione um Pedido de Compra na aba Almoxarifado → Recebimento de Material.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-receber-pc')">Fechar</button>
+    </div>
+  </div>
 </div>
 
 </body>
