@@ -7717,10 +7717,10 @@ function _findashSvgDonut(pct, color, size, label, sublabel) {
 }
 
 function _findashKpiCard(icon, label, value, sublabel, color) {
-  return '<div class="d-card" style="padding:14px 16px">'
-    + '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:6px">' + label + '</div>'
-    + '<div style="font-size:22px;font-weight:800;color:' + (color||'var(--text)') + '">' + value + '</div>'
-    + (sublabel ? '<div style="font-size:10.5px;color:var(--muted);margin-top:3px">' + sublabel + '</div>' : '')
+  return '<div style="background:var(--hbg);border:1px solid var(--border);border-radius:10px;padding:16px 18px;">'
+    + '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:.6px;margin-bottom:8px">' + icon + ' ' + label + '</div>'
+    + '<div style="font-size:20px;font-weight:800;color:' + (color||'var(--text)') + ';letter-spacing:-.5px">' + value + '</div>'
+    + (sublabel ? '<div style="font-size:11px;color:var(--muted);margin-top:4px">' + sublabel + '</div>' : '')
     + '</div>';
 }
 
@@ -15278,6 +15278,7 @@ function loadPersistence() {
     if (d.theme) applyPalette(d.theme);
     else applyPalette(PALETTES_BUILTIN[0]);
     if (d.logo) { companyLogo = d.logo; applyLogo(); }
+    else if (DB && DB.config && DB.config.logoData) { companyLogo = DB.config.logoData; applyLogo(); }
     if (d.companyName && g('pers-company-name')) {
       g('pers-company-name').value = d.companyName;
       g('pers-company-sub').value = d.companySub || '';
@@ -28247,6 +28248,15 @@ function salvarEmpresa() {
   DB.config.email    = getV('emp-email');
   if (_empLogoData === 'remove') { DB.config.logoData = null; _empLogoData = null; }
   else if (_empLogoData) { DB.config.logoData = _empLogoData; _empLogoData = null; }
+
+  // Update companyLogo global and persist
+  if (DB.config.logoData) {
+    companyLogo = DB.config.logoData;
+  } else if (DB.config.logoData === null) {
+    companyLogo = '';
+  }
+  applyLogo();
+  savePersistence();
 
   // Apply to topbar
   var tnEl = g('topbar-company-name');
