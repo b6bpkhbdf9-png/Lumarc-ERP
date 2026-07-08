@@ -29114,24 +29114,7 @@ function sugerirCodigoFilho() {
   if (pai_conta && g('pcm-tipo')) g('pcm-tipo').value = pai_conta.tipo;
 }
 
-function limparConciliador() {
-  var v = g('concil-valor');
-  if (v) v.value = '';
-  var r = g('concil-resultado');
-  if (r) r.innerHTML = '';
-}
 
-function selecionarCombinacao(idxList) {
-  // Clear all checkboxes first, then select the combination
-  document.querySelectorAll('.cr-sel-chk').forEach(function(chk) { chk.checked = false; });
-  idxList.forEach(function(idx) {
-    var chk = document.querySelector('.cr-sel-chk[data-idx="' + idx + '"]');
-    if (chk) chk.checked = true;
-  });
-  updateCRSelecao();
-  // Scroll to table
-  var bar = g('cr-selecao-bar');
-  if (bar) bar.scrollIntoView({ behavior:'smooth', block:'nearest' });
 
 
 
@@ -29139,8 +29122,6 @@ function selecionarCombinacao(idxList) {
 
 
 
-CRSelecao();
-  // Scroll to table
 
 
 
@@ -29149,8 +29130,6 @@ CRSelecao();
 
 
 
-  var bar = g('cr-selecao-bar');
-  if (bar) bar.scrollIntoView({ behavior:'smooth', block:'nearest' });
 
 
 
@@ -29158,18 +29137,7 @@ CRSelecao();
 
 
 
-CRSelecao();
-  // Scroll to table
-  var bar = g('cr-selecao-bar');
-  if (bar) bar.scrollIntoView({ behavior:'smooth', block:'nearest' });
-  showToast('✅ ' + idxList.length + ' lançamento(s) selecionado(s) na lista');
-}
 
-function baixarCombinacao(idxList) {
-  // Select and immediately open bulk baixa modal
-  selecionarCombinacao(idxList);
-  setTimeout(function() { abrirBaixaAgrupada(); }, 150);
-}
 
 
 
@@ -29192,26 +29160,7 @@ function baixarCombinacao(idxList) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- (!paiEl || !codEl) return;
+  if (!paiEl || !codEl) return;
   var pai = paiEl.value.trim();
   if (!pai) return;
   if (!planoCodigoExiste(pai)) {
