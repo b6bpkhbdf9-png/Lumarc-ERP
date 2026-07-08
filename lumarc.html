@@ -29160,20 +29160,7 @@ function sugerirCodigoFilho() {
 
 
 
-  if (!paiEl || !codEl) return;
-  var pai = paiEl.value.trim();
-  if (!pai) return;
-  if (!planoCodigoExiste(pai)) {
-    if (hintEl) hintEl.textContent = 'Conta pai "'+pai+'" não encontrada.';
-    return;
-  }
-  var sugestao = proximoCodigoFilho(pai);
-  codEl.value = sugestao;
-  if (hintEl) hintEl.textContent = 'Próximo código disponível para filho de '+pai;
-  // Auto-fill tipo from parent
-  var pai_conta = getPlanoContas().find(function(c){ return c.cod===pai; });
-  if (pai_conta && g('pcm-tipo')) g('pcm-tipo').value = pai_conta.tipo;
-}
+
 
 function limparConciliador() {
   var v = g('concil-valor');
@@ -29271,6 +29258,8 @@ function baixarCombinacao(idxList) {
 
 
 
+
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){document.querySelectorAll('.modal-overlay').forEach(function(m){if(m.style.display==='flex'){m.classList.remove('open');m.style.display='none';}});}});
 
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){document.querySelectorAll('.modal-overlay').forEach(function(m){if(m.style.display==='flex'){m.classList.remove('open');m.style.display='none';}});}});
 </script>
