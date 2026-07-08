@@ -16232,6 +16232,9 @@ let cloudCfg = {
   autosave:  true,
   autoload:  true,
 };
+var _syncPollTimer=null;
+var _syncPollActive=false;
+var _syncLastRemoteAt=null;
 let cloudState = 'off';      // off | ok | err | sync | warn
 var _syncPollTimer   = null; // timer para polling de sync automático
 var _syncPollActive   = false; // flag de polling ativo
@@ -29319,6 +29322,8 @@ function baixarCombinacao(idxList) {
 
 
 
+
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){document.querySelectorAll('.modal-overlay').forEach(function(m){if(m.style.display==='flex'){m.classList.remove('open');m.style.display='none';}});}});
 </script>
 </div><!-- /app-root -->
 
