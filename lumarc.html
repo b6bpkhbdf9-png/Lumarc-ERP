@@ -9094,6 +9094,28 @@ function applyLoadedData(save) {
 
   if (typeof corrigirTipoOrcLegado === 'function') corrigirTipoOrcLegado();
   if (typeof corrigirNumerosOSDuplicados === 'function') corrigirNumerosOSDuplicados();
+
+  // Restaurar logo e nome da empresa da nuvem para qualquer usuário
+  if (save && save.config) {
+    var tnEl = g('topbar-company-name');
+    if (tnEl && (save.config.fantasia || save.config.empresa)) {
+      tnEl.textContent = save.config.fantasia || save.config.empresa;
+    }
+    if (save.config.logoData && !companyLogo) {
+      companyLogo = save.config.logoData;
+      if (typeof applyLogo === 'function') applyLogo();
+    }
+  }
+
+  // Restaurar persistencia (tema, logo) da nuvem se localStorage local estiver vazio
+  if (save && save._persistencia) {
+    try {
+      if (!localStorage.getItem('lumarc_pers')) {
+        localStorage.setItem('lumarc_pers', JSON.stringify(save._persistencia));
+        if (typeof loadPersistence === 'function') loadPersistence();
+      }
+    } catch(e) {}
+  }
 }
 
 function loadAll() {
