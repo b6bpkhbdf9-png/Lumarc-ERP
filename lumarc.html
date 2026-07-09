@@ -8797,6 +8797,7 @@ function saveAll(silent) {
     regrasClassificacaoCaixa: DB.regrasClassificacaoCaixa || null,
     nfAliases: DB.nfAliases || {},
     _tombstones: DB._tombstones || {},
+    _persistencia: (function(){ try { var r=localStorage.getItem('lumarc_pers'); return r?JSON.parse(r):null; } catch(e){return null;} })(),
     _savedAt: new Date().toISOString(), _version: 34
   };
   localStorage.setItem('lumarc_v2', JSON.stringify(save));
