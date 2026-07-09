@@ -8569,7 +8569,17 @@ function clearOrc(force) {
   const lista = g('itens-orc-lista');
   if (lista) lista.innerHTML = '';
   if (g('itens-empty-msg')) g('itens-empty-msg').style.display = '';
-  g('o-num').value = genOrcNum();
+  // Número provisório instantâneo (não trava a UI), confirmado/corrigido
+  // logo em seguida com a nuvem — evita que dois usuários criando um
+  // orçamento ao mesmo tempo recebam o mesmo número (cada um só enxergando
+  // seu próprio estado local não sincronizado ainda).
+  var _numProvisorio = genOrcNum();
+  g('o-num').value = _numProvisorio;
+  genOrcNumSeguro().then(function(numConfirmado) {
+    if (g('o-num') && g('o-num').value === _numProvisorio) {
+      g('o-num').value = numConfirmado;
+    }
+  });
   g('o-data').value = new Date().toISOString().split('T')[0];
   orcFotos = [];
   if (typeof renderOrcFotos === 'function') renderOrcFotos();
@@ -9019,7 +9029,7 @@ function applyLoadedData(save) {
     iss_aliquota:3, historico:[], rotatividade:15,
   }, save.tributario||{});
   DB.folhaMensal   = save.folhaMensal   || [];
-  DB.orcamentos     = mergeArrayByKey(DB.orcamentos, save.orcamentos, 'num');
+  DB.orcamentos     = mergeArrayByKey(DB.orcamentos, save.orcamentos, 'id');
   DB.requisicoes    = mergeArrayByKey(DB.requisicoes, save.requisicoes, 'id');
   DB.caixasConfig  = save.caixasConfig  || null;
   // Merge por código em vez de sobrescrever — preserva contas criadas localmente
@@ -17633,7 +17643,13 @@ function _moverModaisParaBody() {
 
 function bootApp() {
   _moverModaisParaBody();
-  g('o-num').value = genOrcNum();
+  var _numProvisorioBoot = genOrcNum();
+  g('o-num').value = _numProvisorioBoot;
+  genOrcNumSeguro().then(function(numConfirmado) {
+    if (g('o-num') && g('o-num').value === _numProvisorioBoot) {
+      g('o-num').value = numConfirmado;
+    }
+  });
   g('o-data').value = new Date().toISOString().split('T')[0];
   if (typeof setCurrentMonth === 'function') setCurrentMonth();
   const raw = localStorage.getItem('lumarc_v2');
@@ -19189,6 +19205,7 @@ function salvarOrcamento() {
     motivoObs:   g('o-motivo-obs')   ? g('o-motivo-obs').value   : '',
     savedAt:    agora.toLocaleString('pt-BR'),
     updatedAt:  agora.toLocaleString('pt-BR'),
+    _updatedAt: agora.toISOString(),
     historico: [],
     estado:     capturarEstadoOrc(),
   };
@@ -19339,6 +19356,7 @@ function mudarStatusOrc(id, novoStatus) {
     obs: 'Status alterado para ' + ORC_STATUS_LABELS[novoStatus],
   });
   orc.updatedAt = new Date().toLocaleString('pt-BR');
+  orc._updatedAt = new Date().toISOString();
   saveAll(true);
   renderOrcamentosTab();
   showToast('Status atualizado: ' + ORC_STATUS_LABELS[novoStatus]);
@@ -19360,6 +19378,7 @@ function gerarOSdaLista(id) {
       gerarDocumentosOrc();
       orc.status = 'aprovado';
       orc.updatedAt = new Date().toLocaleString('pt-BR');
+      orc._updatedAt = new Date().toISOString();
       saveAll(true);
     }, 150);
   }, 100);
@@ -19370,6 +19389,7 @@ function excluirOrcamento(id) {
   var orc = DB.orcamentos.find(function(o) { return o.id === id; });
   if (!orc) return;
   if (!confirm('Excluir orçamento ' + orc.num + ' — ' + (orc.cliNome||'sem cliente') + '?\nEsta ação não pode ser desfeita.')) return;
+  registrarTombstone(id);
   DB.orcamentos = DB.orcamentos.filter(function(o) { return o.id !== id; });
   saveAll(true);
   renderOrcamentosTab();
