@@ -15255,8 +15255,8 @@ function savePersistence() {
     theme: currentTheme,
     customPalettes,
     logo: companyLogo,
-    companyName: g('pers-company-name')?.value || '',
-    companySub: g('pers-company-sub')?.value || '',
+    companyName: g('pers-company-name')?.value || (DB.config && (DB.config.fantasia || DB.config.empresa)) || '',
+    companySub: g('pers-company-sub')?.value || (DB.config && DB.config.sub) || '',
   };
   const persJson = JSON.stringify(persData);
   localStorage.setItem('lumarc_pers', persJson);
@@ -16840,9 +16840,11 @@ function stopSyncPolling() {
 
 // ---- INIT CLOUD ON PAGE LOAD ----
 async function initCloud() {
+  window._cloudPullDone = false;
   loadCloudConfig();
   if (!cloudCfg.apiKey) {
     setCloudStatus('off', 'Nuvem não configurada', 'Abra Sync/Backup e cole sua API Key para ativar');
+    window._cloudPullDone = true;
     return;
   }
   if (cloudCfg.autoload) {
@@ -16856,6 +16858,7 @@ async function initCloud() {
   } else {
     setCloudStatus('ok', 'Nuvem configurada', 'Autosave ativo — dados salvos a cada alteração');
   }
+  window._cloudPullDone = true;
   // Inicia polling automático para receber atualizações de outros usuários
   startSyncPolling();
 }
@@ -27782,12 +27785,14 @@ var _onboardStep = 1;
 var _onboardLogoData = null;
 
 function checkOnboarding() {
-  // Only show onboarding if truly first run — no data at all
-  var temDados = (DB.ordens||[]).length > 0 || (DB.clientes||[]).length > 0
-              || (DB.orcamentos||[]).length > 0 || (DB.contasPagar||[]).length > 0;
-  if (!DB.onboardingDone && (!DB.config || !DB.config.empresa) && !temDados) {
+  function _semDados() {
+    var temDados = (DB.ordens||[]).length > 0 || (DB.clientes||[]).length > 0
+                || (DB.orcamentos||[]).length > 0 || (DB.contasPagar||[]).length > 0;
+    return !DB.onboardingDone && (!DB.config || !DB.config.empresa) && !temDados;
+  }
+  if (_semDados()) {
     setTimeout(function() {
-      openModal('modal-onboarding');
+      if (_semDados()) openModal('modal-onboarding'); // reconfirma — dados podem ter chegado da nuvem nesse meio-tempo
     }, 800);
   }
 }
@@ -28162,11 +28167,16 @@ function deleteNF(id) {
 var _origBootFinal = window.bootApp;
 window.bootApp = function() {
   if (_origBootFinal) _origBootFinal();
-  setTimeout(function() {
+  function tentarPosBoot(tentativasRestantes) {
     updateTopbarAlerts();
-    checkOnboarding();
-    patchOpenOSModal();
-  }, 500);
+    if (window._cloudPullDone || tentativasRestantes <= 0) {
+      checkOnboarding();
+      patchOpenOSModal();
+    } else {
+      setTimeout(function() { tentarPosBoot(tentativasRestantes - 1); }, 300);
+    }
+  }
+  setTimeout(function() { tentarPosBoot(18); }, 500); // espera até ~6s extras pela nuvem
 };
 
 
