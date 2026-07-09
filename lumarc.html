@@ -6723,6 +6723,7 @@ function renderItemCard(item, openBody) {
   const cfg = ITEM_TIPO[item.tipo] || ITEM_TIPO.servico;
   div.innerHTML = buildItemCardHTML(item, cfg, openBody);
   lista.appendChild(div);
+  hidratarFotosLazy(div);
 
   // Init dynamic tables for this item
   ['mp','mo','maq','da'].forEach(t => {
@@ -6916,7 +6917,7 @@ function buildItemCardHTML(item, cfg, open) {
       <div id="item-${item.id}-fotos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:8px">
         ${(item.fotos||[]).map((f,fi)=>`
           <div style="position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--border)">
-            <img src="${f.dataUrl}" style="width:100%;height:100%;object-fit:cover">
+            ${htmlFotoTag(f, 'width:100%;height:100%;object-fit:cover')}
             <button onclick="removeItemOrcFoto(${item.id},${fi})" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1">×</button>
           </div>`).join('')}
       </div>
@@ -6943,23 +6944,24 @@ function _addFotoToItem(itemId, file) {
   if (file.size > 2000000) {
     showToast(`Imagem "${file.name||'colada'}" é grande (${(file.size/1024/1024).toFixed(1)}MB). Recomendado máx. 2MB. Redimensione se necessário.`, 'warn');
   }
-  const reader = new FileReader();
-  reader.onload = function(e) {
+  comprimirImagem(file, function(dataUrl) {
+    if (!dataUrl) return;
     const item = orcItems.find(it => it.id === itemId);
     if (!item) return;
     if (!item.fotos) item.fotos = [];
-    item.fotos.push({ dataUrl: e.target.result, name: file.name || 'imagem-colada.png' });
+    const ref = fotoStoreSalvar(dataUrl, file.name || 'imagem-colada.png');
+    item.fotos.push(ref);
     // Re-renders só o grid de fotos daquele item, sem reconstruir o card inteiro
     const grid = g(`item-${itemId}-fotos-grid`);
     if (grid) {
       grid.innerHTML = item.fotos.map((f,fi)=>`
         <div style="position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--border)">
-          <img src="${f.dataUrl}" style="width:100%;height:100%;object-fit:cover">
+          ${htmlFotoTag(f, 'width:100%;height:100%;object-fit:cover')}
           <button onclick="removeItemOrcFoto(${itemId},${fi})" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1">×</button>
         </div>`).join('');
+      hidratarFotosLazy(grid);
     }
-  };
-  reader.readAsDataURL(file);
+  });
 }
 
 function itemOrcFileFoto(event, itemId) {
@@ -6992,9 +6994,10 @@ function removeItemOrcFoto(itemId, fotoIdx) {
   if (grid) {
     grid.innerHTML = item.fotos.map((f,fi)=>`
       <div style="position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--border)">
-        <img src="${f.dataUrl}" style="width:100%;height:100%;object-fit:cover">
+        ${htmlFotoTag(f, 'width:100%;height:100%;object-fit:cover')}
         <button onclick="removeItemOrcFoto(${itemId},${fi})" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1">×</button>
       </div>`).join('');
+    hidratarFotosLazy(grid);
   }
 }
 
@@ -12030,10 +12033,11 @@ function printRoteiro(osNum) {
   setTimeout(() => w.print(), 600);
 }
 
-function printOS(idx, semValores) {
+async function printOS(idx, semValores) {
   const i = idx !== undefined ? idx : DB.editOSIdx;
   const os = i >= 0 ? DB.ordens[i] : null;
   if (!os) { alert('Salve a OS primeiro.'); return; }
+  await garantirFotosCarregadas();
 
   const st = OS_STATUSES.find(s => s.key === os.status) || {};
   const histHTML = (os.historico||[]).map(h =>
@@ -12118,7 +12122,7 @@ function printOS(idx, semValores) {
   </div>
   <div class="desc-box">${os.desc}</div>
   ${os.obsTec ? `<div class="sec">Instruções / Notas Técnicas</div><div class="desc-box" style="border-color:#FCD34D;background:#FFFBEB;padding:10px 12px"><ol style="margin:0;padding-left:18px;line-height:1.7">${os.obsTec.split('\n').filter(function(l){return l.trim()!=='';}).map(function(l){return '<li>'+l+'</li>';}).join('')}</ol></div>` : ''}
-  ${(os.fotos||[]).length > 0 ? `<div class="sec">Fotos de Referência</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0">${(os.fotos||[]).map(f=>`<img src="${f.dataUrl}" style="width:100%;border-radius:4px;border:1px solid #E2E8F0;object-fit:cover;aspect-ratio:1">`).join('')}</div>` : ''}
+  ${(os.fotos||[]).length > 0 ? `<div class="sec">Fotos de Referência</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0">${(os.fotos||[]).map(f=>`<img src="${fotoStoreObterSync(f)}" style="width:100%;border-radius:4px;border:1px solid #E2E8F0;object-fit:cover;aspect-ratio:1">`).join('')}</div>` : ''}
 
   ${semValores ? '' : `<div class="sec">Valores</div>
   <div class="fin-box">
@@ -15395,12 +15399,12 @@ let _currentOSFotos = []; // temp while modal is open
 function addOSFotos(event) {
   const files = Array.from(event.target.files);
   files.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      _currentOSFotos.push({ dataUrl: e.target.result, name: file.name });
+    comprimirImagem(file, function(dataUrl) {
+      if (!dataUrl) return;
+      const ref = fotoStoreSalvar(dataUrl, file.name);
+      _currentOSFotos.push(ref);
       renderOSFotos();
-    };
-    reader.readAsDataURL(file);
+    });
   });
   event.target.value = '';
 }
@@ -15410,13 +15414,21 @@ function renderOSFotos() {
   if (!grid) return;
   grid.innerHTML = _currentOSFotos.map((f, i) => `
     <div class="anexo-thumb">
-      <img src="${f.dataUrl}" alt="${f.name}" onclick="viewAnexo('${f.dataUrl}')">
+      ${htmlFotoTag(f, '', `alt="${f.name||''}" onclick="viewAnexoOSFoto(${i})"`)}
       <button class="remove-anexo" onclick="removeOSFoto(${i})">×</button>
     </div>`).join('')
     + `<div class="anexo-add" onclick="g('os-fotos-input').click()">
       <div class="anexo-add-icon">📷</div>
       <div class="anexo-add-label">Adicionar</div>
     </div>`;
+  hidratarFotosLazy(grid);
+}
+
+function viewAnexoOSFoto(i) {
+  const ref = _currentOSFotos[i];
+  fotoStoreObter(ref, function(dataUrl) {
+    if (dataUrl) viewAnexo(dataUrl);
+  });
 }
 
 function removeOSFoto(i) {
@@ -15473,8 +15485,9 @@ function removeOSPCFile() {
 // ============================================================
 
 // ── PROPOSTA COMERCIAL / TÉCNICA ─────────────────────────────────────────────
-function exportPropostaComercial() {
+async function exportPropostaComercial() {
   if (!orcItems.length) { showToast('Adicione itens antes de exportar.','warn'); return; }
+  await garantirFotosCarregadas();
 
   const fn   = id => (g(id)?.value || '').trim() || '—';
   const fmt2 = v  => (parseFloat(v)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
@@ -15552,7 +15565,7 @@ function exportPropostaComercial() {
       </table>
       ${(item.fotos && item.fotos.length) ? `
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:8px;padding:8px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:0 0 6px 6px">
-        ${item.fotos.map(f=>`<img src="${f.dataUrl}" style="width:100%;border-radius:4px;border:1px solid #E2E8F0;object-fit:contain;background:#fff;max-height:160px">`).join('')}
+        ${item.fotos.map(f=>`<img src="${fotoStoreObterSync(f)}" style="width:100%;border-radius:4px;border:1px solid #E2E8F0;object-fit:contain;background:#fff;max-height:160px">`).join('')}
       </div>` : ''}
     </div>`;
   }).join('');
@@ -15682,8 +15695,9 @@ function exportPropostaComercial() {
   setTimeout(() => w.print(), 600);
 }
 
-function exportPDF() {
+async function exportPDF() {
   if (!orcItems.length) { showToast('Adicione itens ao orçamento antes de exportar.','warn'); return; }
+  await garantirFotosCarregadas();
   const fn = id => g(id)?.value || '—';
   const company = getPDFCompanyHTML ? getPDFCompanyHTML() : {name:'LUMARC', sub:'Usinagem · Caldeiraria · Manutenção · Pintura'};
   const logoHTML = getPDFLogoHTML ? getPDFLogoHTML() : '<div style="font-size:20px;font-weight:800">LUMARC</div>';
@@ -15738,7 +15752,7 @@ function exportPDF() {
     });
 
     const fotosHTML = (item.fotos||[]).length
-      ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:8px 0">${(item.fotos||[]).map(f=>`<img src="${f.dataUrl}" style="width:100%;max-height:160px;border-radius:4px;border:1px solid #E2E8F0;object-fit:contain;background:#fff">`).join('')}</div>` : '';
+      ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:8px 0">${(item.fotos||[]).map(f=>`<img src="${fotoStoreObterSync(f)}" style="width:100%;max-height:160px;border-radius:4px;border:1px solid #E2E8F0;object-fit:contain;background:#fff">`).join('')}</div>` : '';
 
     return `
     <div style="border:1px solid #E2E8F0;border-radius:8px;margin-bottom:16px;overflow:hidden">
@@ -16232,6 +16246,251 @@ function exportDBExcel(dbKey) {
 const JSONBIN_BIN_ID  = '6a2c05c8da38895dfeb4d7f8';
 const JSONBIN_API_KEY = '$2a$10$ppAAInu8Ex1sy04Ji1FKX.FARP8uXRFe2cxRc5pZpbMe2a5tGQAs6'; // Chave embutida automaticamenteigurar
 const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
+
+// ════════════════════════════════════════════════════════════════════════════
+// ARMAZENAMENTO SEPARADO DE FOTOS
+// ════════════════════════════════════════════════════════════════════════════
+// PROBLEMA QUE ISSO RESOLVE: fotos em base64 (de itens de orçamento e de OS)
+// cresciam dentro do MESMO payload que sincroniza a cada salvamento. Isso fez
+// o envio pra nuvem passar de 1,9MB, estourando o limite do JSONbin (o envio
+// falhava com erro 413 "conteúdo grande demais" — silenciosamente, sem avisar
+// o usuário, porque falhas do autosave automático não mostram alerta na tela).
+// Resultado: a nuvem ficou travada num estado antigo, e outros usuários
+// (ex: Fabian) nunca recebiam os dados/orçamentos mais recentes.
+//
+// SOLUÇÃO: fotos passam a viver num bin PRÓPRIO, separado do bin principal.
+// Dentro de orçamentos/OS, a foto vira uma referência leve — {id, name,
+// _lazy:true} — em vez do dataUrl completo embutido. O dataUrl de verdade só
+// é buscado quando a foto realmente precisa ser exibida (hidratação
+// preguiçosa), e o cache em memória evita buscar a mesma foto duas vezes.
+const JSONBIN_FOTOS_BIN_ID = '6a4fc972da38895dfe46d8b4';
+
+var _fotosCache      = {};   // id -> dataUrl, já resolvidos nesta sessão
+var _fotosPendentes  = {};   // id -> dataUrl, capturadas agora mas ainda não confirmadas na nuvem
+var _fotosBinCarregado = false;
+var _fotosPullPromise  = null;
+var _fotosPushTimer     = null;
+
+function _gerarFotoId() {
+  return 'foto-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+}
+
+// Redimensiona/recomprime a imagem antes de guardar — mantém o crescimento
+// sob controle mesmo com o bin separado (uma foto de celular não tratada
+// pode passar de 3-4MB sozinha). Se o canvas falhar por algum motivo, cai
+// para a imagem original em vez de travar o upload.
+function comprimirImagem(file, callback, maxDim, qualidade) {
+  maxDim = maxDim || 1280;
+  qualidade = qualidade || 0.72;
+  if (!file || !file.type || !file.type.startsWith('image/')) { callback(null); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var original = e.target.result;
+    var img = new Image();
+    img.onload = function() {
+      try {
+        var w = img.width, h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+          else       { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        var comprimido = canvas.toDataURL('image/jpeg', qualidade);
+        // Só usa a versão comprimida se ela realmente ficou menor —
+        // imagens já pequenas/simples às vezes ficam maiores em JPEG.
+        callback(comprimido.length < original.length ? comprimido : original);
+      } catch (err) {
+        callback(original); // canvas falhou (ex: imagem "tainted") — usa original
+      }
+    };
+    img.onerror = function() { callback(original); };
+    img.src = original;
+  };
+  reader.onerror = function() { callback(null); };
+  reader.readAsDataURL(file);
+}
+
+// Guarda uma foto (dataUrl já pronta) no cache local + fila de envio, e
+// devolve a REFERÊNCIA LEVE que deve ser guardada no lugar do dataUrl
+// dentro de item.fotos / os.fotos.
+function fotoStoreSalvar(dataUrl, nome) {
+  var id = _gerarFotoId();
+  _fotosCache[id] = dataUrl;
+  _fotosPendentes[id] = dataUrl;
+  _agendarPushFotos();
+  return { id: id, name: nome || '', _lazy: true };
+}
+
+// Resolve uma referência de foto (formato novo {id,name,_lazy} OU formato
+// antigo — string dataUrl direta, ou objeto {dataUrl,name}) para o dataUrl
+// de verdade. Sempre assíncrono via callback, mesmo quando já está em cache,
+// para manter uma única forma de chamar em todo o código.
+function fotoStoreObter(ref, callback) {
+  if (!ref) { callback(null); return; }
+  if (typeof ref === 'string') { callback(ref); return; }
+  if (ref.dataUrl) { callback(ref.dataUrl); return; }
+  if (ref.id && _fotosCache[ref.id]) { callback(_fotosCache[ref.id]); return; }
+  if (!ref.id) { callback(null); return; }
+  _puxarFotosBin().then(function() {
+    callback(_fotosCache[ref.id] || null);
+  });
+}
+
+// Versão síncrona — só retorna algo se a foto já estiver em cache (ex: foi
+// capturada nesta mesma sessão, ou o bin de fotos já foi puxado antes).
+// Usada em contextos que montam HTML de uma vez só (documentos/PDF), onde
+// já garantimos o pull antes de montar o texto.
+function fotoStoreObterSync(ref) {
+  if (!ref) return '';
+  if (typeof ref === 'string') return ref;
+  if (ref.dataUrl) return ref.dataUrl;
+  if (ref.id) return _fotosCache[ref.id] || '';
+  return '';
+}
+
+function _puxarFotosBin() {
+  if (_fotosBinCarregado) return Promise.resolve();
+  if (_fotosPullPromise) return _fotosPullPromise;
+  if (!cloudCfg.apiKey) return Promise.resolve();
+  _fotosPullPromise = fetch(JSONBIN_BASE + '/b/' + JSONBIN_FOTOS_BIN_ID + '/latest', {
+    headers: { 'X-Master-Key': cloudCfg.apiKey }
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    var rec = (d && d.record) || {};
+    var fotos = rec.fotos || {};
+    Object.keys(fotos).forEach(function(id) {
+      if (!_fotosCache[id]) _fotosCache[id] = fotos[id];
+    });
+    _fotosBinCarregado = true;
+  }).catch(function(e) {
+    console.warn('[FotoStore] Falha ao buscar bin de fotos:', e.message);
+    _fotosPullPromise = null; // permite tentar de novo na próxima chamada
+  });
+  return _fotosPullPromise;
+}
+
+// Garante que TODAS as fotos referenciadas numa lista de orçamentos/OS já
+// estão resolvidas em _fotosCache — usado antes de montar documentos/PDF,
+// onde a montagem do HTML é síncrona e não pode esperar foto por foto.
+async function garantirFotosCarregadas() {
+  await _puxarFotosBin();
+}
+
+function _agendarPushFotos() {
+  clearTimeout(_fotosPushTimer);
+  _fotosPushTimer = setTimeout(_pushFotosBin, 2000);
+}
+
+// Envia as fotos novas pro bin separado — sempre lendo o estado atual da
+// nuvem antes (mesmo padrão de pull-antes-do-push usado no resto do
+// sistema), somando ao invés de sobrescrever, então fotos de outro usuário
+// nunca são apagadas por engano.
+async function _pushFotosBin(_retryCount) {
+  _retryCount = _retryCount || 0;
+  if (!Object.keys(_fotosPendentes).length) return;
+  if (!cloudCfg.apiKey) return;
+  var idsDestaVez = Object.keys(_fotosPendentes);
+  try {
+    var remoto = {};
+    try {
+      var resp = await fetch(JSONBIN_BASE + '/b/' + JSONBIN_FOTOS_BIN_ID + '/latest', {
+        headers: { 'X-Master-Key': cloudCfg.apiKey }
+      });
+      if (resp.ok) {
+        var d = await resp.json();
+        remoto = (d.record && d.record.fotos) || {};
+      }
+    } catch (e) { /* segue com o que já tem localmente */ }
+
+    var mesclado = Object.assign({}, remoto, _fotosCache);
+    var putResp = await fetch(JSONBIN_BASE + '/b/' + JSONBIN_FOTOS_BIN_ID, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': cloudCfg.apiKey },
+      body: JSON.stringify({ fotos: mesclado, _atualizadoEm: new Date().toISOString() }),
+    });
+    if (putResp.status === 429 && _retryCount < 3) {
+      setTimeout(function() { _pushFotosBin(_retryCount + 1); }, 1500 * (_retryCount + 1));
+      return;
+    }
+    if (putResp.ok) {
+      idsDestaVez.forEach(function(id) { delete _fotosPendentes[id]; });
+      _fotosBinCarregado = true;
+    } else {
+      console.warn('[FotoStore] Push de fotos falhou (HTTP ' + putResp.status + '), tentando de novo em breve.');
+      _agendarPushFotos();
+    }
+  } catch (e) {
+    console.warn('[FotoStore] Erro no push de fotos:', e.message);
+    _agendarPushFotos();
+  }
+}
+
+// Monta a tag <img> pronta pra exibir uma referência de foto. Se o dataUrl
+// já está em cache, mostra na hora. Se não, mostra um placeholder cinza com
+// data-foto-id e deixa para hidratarFotosLazy() resolver depois.
+function htmlFotoTag(ref, styleCss, extraAttrs) {
+  styleCss = styleCss || '';
+  extraAttrs = extraAttrs || '';
+  if (!ref) return '';
+  var dataUrl = fotoStoreObterSync(ref);
+  if (dataUrl) {
+    return '<img src="' + dataUrl + '" style="' + styleCss + '" ' + extraAttrs + '>';
+  }
+  var id = (ref && ref.id) || '';
+  return '<img data-foto-id="' + id + '" src="" style="' + styleCss + ';background:#EEE" ' + extraAttrs + '>';
+}
+
+// Varre um container do DOM e resolve todo <img data-foto-id> pendente,
+// buscando o dataUrl real (do cache ou do bin de fotos) e aplicando no src.
+function hidratarFotosLazy(root) {
+  root = root || document;
+  var imgs = root.querySelectorAll('img[data-foto-id]:not([data-hidratada])');
+  imgs.forEach(function(img) {
+    img.setAttribute('data-hidratada', '1');
+    var id = img.getAttribute('data-foto-id');
+    if (!id) return;
+    fotoStoreObter({ id: id }, function(dataUrl) {
+      if (dataUrl) img.src = dataUrl;
+    });
+  });
+}
+
+// Migração única: converte fotos JÁ EXISTENTES (no formato antigo, com
+// dataUrl embutido direto no registro) para o formato novo de referência
+// leve, movendo o conteúdo real pro bin separado de fotos. É isso que
+// desincha o payload principal de quem já tinha orçamentos/OS com fotos
+// de antes desta correção — sem essa migração, os dados antigos
+// continuariam grandes demais para sincronizar mesmo com o código novo.
+function migrarFotosParaBinSeparado() {
+  if (localStorage.getItem('lumarc_fotos_migradas_v1')) return;
+  var convertidas = 0;
+
+  function migrarLista(lista) {
+    if (!lista) return;
+    lista.forEach(function(f, idx) {
+      if (f && typeof f === 'object' && f.dataUrl && !f._lazy) {
+        lista[idx] = fotoStoreSalvar(f.dataUrl, f.name);
+        convertidas++;
+      }
+    });
+  }
+
+  (DB.orcamentos || []).forEach(function(o) {
+    var items = (o.estado && o.estado.orcItems) || [];
+    items.forEach(function(it) { migrarLista(it.fotos); });
+    migrarLista(o.estado && o.estado.orcFotos);
+  });
+  (DB.ordens || []).forEach(function(o) { migrarLista(o.fotos); });
+
+  if (convertidas > 0) {
+    console.log('[Migração Fotos] ' + convertidas + ' foto(s) movida(s) para o bin separado.');
+    showToast('🔧 Correção automática: ' + convertidas + ' foto(s) movida(s) para armazenamento separado — liberando a sincronização.', 'warn');
+    saveAll(true);
+  }
+  localStorage.setItem('lumarc_fotos_migradas_v1', '1');
+}
 
 // ── IDENTIFICADOR ÚNICO DE SESSÃO/MÁQUINA ───────────────────────────────
 // Usado para o sistema reconhecer "isso fui eu que enviei" ao sincronizar,
@@ -17904,6 +18163,7 @@ function limparDuplicatasFolha() {
   function _bootSeguro(fn, nome) {
     try { fn(); } catch(e) { console.error('[Boot] Falha em ' + nome + ' (ignorada, continuando boot):', e); }
   }
+  _bootSeguro(migrarFotosParaBinSeparado, 'migrarFotosParaBinSeparado');
   _bootSeguro(garantirIDs, 'garantirIDs');
   _bootSeguro(limparDuplicatasCadastros, 'limparDuplicatasCadastros');
   _bootSeguro(limparDuplicatasFinanceiras, 'limparDuplicatasFinanceiras');
