@@ -18164,6 +18164,8 @@ function limparDuplicatasFolha() {
     try { fn(); } catch(e) { console.error('[Boot] Falha em ' + nome + ' (ignorada, continuando boot):', e); }
   }
   _bootSeguro(migrarFotosParaBinSeparado, 'migrarFotosParaBinSeparado');
+  _bootSeguro(_iniciarRascunhoAutoSave, '_iniciarRascunhoAutoSave');
+  _bootSeguro(verificarRascunhoPendente, 'verificarRascunhoPendente');
   _bootSeguro(garantirIDs, 'garantirIDs');
   _bootSeguro(limparDuplicatasCadastros, 'limparDuplicatasCadastros');
   _bootSeguro(limparDuplicatasFinanceiras, 'limparDuplicatasFinanceiras');
@@ -19487,6 +19489,7 @@ function salvarOrcamento() {
 
   saveAll(true);
   if (typeof renderOrcamentosTab === 'function') renderOrcamentosTab();
+  localStorage.removeItem('lumarc_rascunho_autosave');
 }
 
 
@@ -19509,6 +19512,80 @@ function hasUnsavedOrc() {
   });
   // Só considera "em andamento" se tiver número OU cliente OU itens com dados
   return !!(num || nome || hasItems);
+}
+
+// ── PROTEÇÃO CONTRA FECHAMENTO COM TRABALHO NÃO SALVO ───────────────────────
+// Antes só existia proteção para trocar de orçamento DENTRO do app
+// (confirmarDescarte). Fechar a aba, recarregar a página, o computador
+// reiniciar ou uma sessão de acesso remoto cair no meio de uma edição não
+// disparava nenhum aviso — o que estava só na tela e ainda não tinha sido
+// salvo com o botão "Salvar" se perdia sem rastro. Isso cobre os dois casos:
+window.addEventListener('beforeunload', function(e) {
+  if (typeof hasUnsavedOrc === 'function' && hasUnsavedOrc()) {
+    e.preventDefault();
+    e.returnValue = ''; // navegadores modernos ignoram o texto customizado, mas exigem isso pra mostrar o aviso nativo
+    return '';
+  }
+});
+
+// Rascunho automático: enquanto há edição não salva, grava um snapshot bruto
+// do formulário (não mexe em DB.orcamentos, é só uma rede de segurança à
+// parte) a cada 15s. Se o app fechar antes do "Salvar" ser clicado, o
+// rascunho sobrevive e é oferecido de volta no próximo boot.
+var _rascunhoAutoSaveTimer = null;
+function _iniciarRascunhoAutoSave() {
+  clearInterval(_rascunhoAutoSaveTimer);
+  _rascunhoAutoSaveTimer = setInterval(function() {
+    try {
+      if (typeof hasUnsavedOrc !== 'function' || !hasUnsavedOrc()) return;
+      var snapshot = {
+        savedAt: new Date().toISOString(),
+        orcData: {
+          'o-num': g('o-num') ? g('o-num').value : '',
+          'c-nome': g('c-nome') ? g('c-nome').value : '',
+        },
+        orcItems: orcItems,
+      };
+      localStorage.setItem('lumarc_rascunho_autosave', JSON.stringify(snapshot));
+    } catch (e) { /* nunca deixa o autosave de rascunho quebrar o app */ }
+  }, 15000);
+}
+
+// Verifica no boot se existe um rascunho não salvo de uma sessão anterior
+// e oferece recuperar — só pergunta uma vez por rascunho encontrado.
+function verificarRascunhoPendente() {
+  try {
+    var raw = localStorage.getItem('lumarc_rascunho_autosave');
+    if (!raw) return;
+    var snap = JSON.parse(raw);
+    var temConteudo = (snap.orcData && (snap.orcData['o-num'] || snap.orcData['c-nome']))
+                    || (snap.orcItems && snap.orcItems.length && snap.orcItems.some(function(it){ return it.desc || it.custoTotal > 0 || it.precoFinal > 0; }));
+    if (!temConteudo) { localStorage.removeItem('lumarc_rascunho_autosave'); return; }
+    var quando = new Date(snap.savedAt).toLocaleString('pt-BR');
+    var numOuNome = snap.orcData['o-num'] || snap.orcData['c-nome'] || '(sem número)';
+    setTimeout(function() {
+      if (confirm('Encontrei um orçamento não salvo de uma sessão anterior (' + numOuNome + ', ' + quando + ').\n\nDeseja recuperar esse rascunho agora?')) {
+        clearOrc(true);
+        if (snap.orcData['o-num']) g('o-num').value = snap.orcData['o-num'];
+        if (snap.orcData['c-nome']) g('c-nome').value = snap.orcData['c-nome'];
+        orcItems = [];
+        var lista = g('itens-orc-lista');
+        if (lista) lista.innerHTML = '';
+        var itensRascunho = snap.orcItems || [];
+        if (itensRascunho.length && g('itens-empty-msg')) g('itens-empty-msg').style.display = 'none';
+        itensRascunho.forEach(function(item) {
+          orcItems.push(item);
+          if (typeof renderItemCard === 'function') renderItemCard(item, false);
+        });
+        if (typeof rebuildSelects === 'function') rebuildSelects();
+        if (typeof recalcAllItems === 'function') recalcAllItems();
+        if (typeof renderResumo === 'function') renderResumo();
+        markOrcDirty();
+        showToast('📋 Rascunho recuperado — revise e clique em Salvar.', 'warn');
+      }
+      localStorage.removeItem('lumarc_rascunho_autosave');
+    }, 1200);
+  } catch (e) { /* rascunho corrompido — ignora silenciosamente */ }
 }
 
 // Confirmação dupla: mostra modal customizado em vez de confirm() nativo
