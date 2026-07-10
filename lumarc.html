@@ -571,6 +571,7 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 .orc-status-badge { padding:3px 9px; border-radius:10px; font-size:10px; font-weight:700; }
 .orc-s-rascunho   { background:#F1F5F9; color:#64748B; }
 .orc-s-aguardando { background:#FEF3C7; color:#B45309; }
+.orc-s-liberado   { background:#DCFCE7; color:#166534; }
 .orc-s-enviado    { background:#DBEAFE; color:#1D4ED8; }
 .orc-s-aprovado   { background:#D1FAE5; color:#065F46; }
 .orc-s-recusado   { background:#FEE2E2; color:#991B1B; }
@@ -995,6 +996,9 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
     <div id="topbar-user-info" style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:5px;background:rgba(255,255,255,.06)"></div>
     <div id="topbar-rc-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(245,158,11,.25);color:#FCD34D;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-rc')" title="Requisições aguardando aprovação">
       📝 <span id="topbar-rc-count">0</span> RC pendente(s)
+    </div>
+    <div id="topbar-orc-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(245,158,11,.25);color:#FCD34D;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-orcamentos')" title="Orçamentos aguardando aprovação">
+      📋 <span id="topbar-orc-count">0</span> orçamento(s) pendente(s)
     </div>
     <!-- 🔔 Central de alertas -->
     <div id="topbar-alerts-btn" style="position:relative;cursor:pointer" onclick="toggleAlertsPanel()" title="Alertas do sistema">
@@ -17067,6 +17071,7 @@ async function cloudPollSilent() {
     renderAfterSync(false);
         updateTopbarAlerts && updateTopbarAlerts();
         updateTopbarRCBadge && updateTopbarRCBadge();
+        updateTopbarOrcBadge && updateTopbarOrcBadge();
 
   } catch(e) {
     // falha silenciosa — não interrompe o usuário
@@ -18206,6 +18211,7 @@ function limparDuplicatasFolha() {
   _bootSeguro(initCloud, 'initCloud');
   _bootSeguro(ensureDefaultAdmin, 'ensureDefaultAdmin');
   _bootSeguro(updateTopbarRCBadge, 'updateTopbarRCBadge');
+  _bootSeguro(updateTopbarOrcBadge, 'updateTopbarOrcBadge');
 }
 
 
@@ -19369,7 +19375,8 @@ function updatePatPreview() {
 
 const ORC_STATUS_LABELS = {
   rascunho:   'Rascunho',
-  aguardando: 'Aguardando',
+  aguardando: 'Aguardando Aprovação',
+  liberado:   'Liberado p/ Envio',
   enviado:    'Enviado',
   aprovado:   'Aprovado',
   recusado:   'Recusado',
@@ -19699,7 +19706,66 @@ function mudarStatusOrc(id, novoStatus) {
   orc._updatedAt = new Date().toISOString();
   saveAll(true);
   renderOrcamentosTab();
+  updateTopbarOrcBadge();
   showToast('Status atualizado: ' + ORC_STATUS_LABELS[novoStatus]);
+}
+
+// ── APROVAÇÃO INTERNA DE ORÇAMENTOS ─────────────────────────────────────────
+// Mesmo padrão usado nas RC's: orçamento em 'aguardando' só pode ser
+// aprovado/reprovado por quem tem perfil admin ou gerente. Aprovado vira
+// 'liberado' (pronto pra enviar ao cliente, distinto de 'aprovado' que
+// significa que o CLIENTE aprovou a proposta). Reprovado volta pra
+// rascunho com o motivo registrado, pra quem criou poder corrigir e reenviar.
+function updateTopbarOrcBadge() {
+  var pendentes = (DB.orcamentos || []).filter(function(o) { return o.status === 'aguardando'; });
+  var badge = g('topbar-orc-badge');
+  var count = g('topbar-orc-count');
+  var canApprove = currentUser && (currentUser.perfil === 'admin' || currentUser.perfil === 'gerente');
+  if (badge) {
+    if (canApprove && pendentes.length > 0) {
+      badge.style.display = 'flex';
+      if (count) count.textContent = pendentes.length;
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+}
+
+function aprovarOrcamentoRapido(id) {
+  var orc = (DB.orcamentos || []).find(function(o) { return o.id === id; });
+  if (!orc) return;
+  var now = new Date().toLocaleString('pt-BR');
+  orc.status = 'liberado';
+  orc.aprovadorInterno = currentUser ? currentUser.nome : 'Sistema';
+  orc.obsAprovadorInterno = '';
+  orc.updatedAt = now;
+  orc._updatedAt = new Date().toISOString();
+  orc.historico = orc.historico || [];
+  orc.historico.push({ data: now, status: 'liberado', obs: 'Aprovado internamente por ' + orc.aprovadorInterno });
+  saveAll(true);
+  renderOrcamentosTab();
+  updateTopbarOrcBadge();
+  showToast('✅ Orçamento ' + orc.num + ' aprovado — liberado para envio!');
+}
+
+function reprovarOrcamentoRapidoDialog(id) {
+  var motivo = prompt('Motivo da reprovação (obrigatório — o responsável pelo orçamento verá esta observação):');
+  if (motivo === null) return;
+  if (!motivo.trim()) { alert('Informe o motivo da reprovação.'); return; }
+  var orc = (DB.orcamentos || []).find(function(o) { return o.id === id; });
+  if (!orc) return;
+  var now = new Date().toLocaleString('pt-BR');
+  orc.status = 'rascunho';
+  orc.aprovadorInterno = currentUser ? currentUser.nome : 'Sistema';
+  orc.obsAprovadorInterno = motivo;
+  orc.updatedAt = now;
+  orc._updatedAt = new Date().toISOString();
+  orc.historico = orc.historico || [];
+  orc.historico.push({ data: now, status: 'rascunho', obs: 'Reprovado por ' + orc.aprovadorInterno + ': ' + motivo });
+  saveAll(true);
+  renderOrcamentosTab();
+  updateTopbarOrcBadge();
+  showToast('❌ Orçamento ' + orc.num + ' reprovado — voltou para rascunho.');
 }
 
 // ---- GERAR OS A PARTIR DA LISTA ----
@@ -19753,6 +19819,7 @@ function renderOrcamentosTab() {
   var search   = g('orc-list-search')  ? g('orc-list-search').value.toLowerCase()  : '';
   var stFilter = g('orc-list-status')  ? g('orc-list-status').value                : '';
   var orcs     = DB.orcamentos || [];
+  var canApprove = currentUser && (currentUser.perfil === 'admin' || currentUser.perfil === 'gerente');
 
   // KPIs
   var kpisEl = g('orc-list-kpis');
@@ -19761,6 +19828,7 @@ function renderOrcamentosTab() {
       total:     orcs.length,
       rascunho:  orcs.filter(function(o){return o.status==='rascunho';}).length,
       aguardando:orcs.filter(function(o){return o.status==='aguardando';}).length,
+      liberado:  orcs.filter(function(o){return o.status==='liberado';}).length,
       enviado:   orcs.filter(function(o){return o.status==='enviado';}).length,
       aprovado:  orcs.filter(function(o){return o.status==='aprovado';}).length,
     };
@@ -19769,13 +19837,16 @@ function renderOrcamentosTab() {
     kpisEl.innerHTML = [
       { icon:'📋', val:tots.total,      lbl:'Total',       cls:'blue'   },
       { icon:'📝', val:tots.rascunho,   lbl:'Rascunhos',   cls:'blue'   },
-      { icon:'⏳', val:tots.aguardando, lbl:'Aguardando',  cls:'orange' },
+      { icon:'⏳', val:tots.aguardando, lbl:'Aguardando Aprovação',  cls:'orange' },
+      { icon:'🔓', val:tots.liberado,   lbl:'Liberados',   cls:'green'  },
       { icon:'📨', val:tots.enviado,    lbl:'Enviados',    cls:'blue'   },
       { icon:'✅', val:tots.aprovado + ' · ' + fmt(valAprov), lbl:'Aprovados', cls:'green' },
     ].map(function(k) {
       return '<div class="d-kpi ' + k.cls + '"><div class="d-kpi-icon">' + k.icon + '</div><div class="d-kpi-val" style="font-size:13px">' + k.val + '</div><div class="d-kpi-lbl">' + k.lbl + '</div></div>';
     }).join('');
   }
+
+  updateTopbarOrcBadge();
 
   // Filter
   var filtered = orcs.filter(function(orc) {
@@ -19839,10 +19910,13 @@ function renderOrcamentosTab() {
         + '</select>'
         + '<button class="btn btn-primary btn-xs" onclick="abrirOrcamento(\'' + orc.id + '\')">📂 Abrir</button>'
         + '<button class="btn btn-ghost btn-xs" onclick="duplicarOrcamento(\'' + orc.id + '\')" title="Duplicar este orçamento">⧉</button>'
+        + (st === 'aguardando' && canApprove ? '<button class="btn btn-green btn-xs" onclick="aprovarOrcamentoRapido(\'' + orc.id + '\')">✅ Aprovar</button>' : '')
+        + (st === 'aguardando' && canApprove ? '<button class="btn btn-danger btn-xs" onclick="reprovarOrcamentoRapidoDialog(\'' + orc.id + '\')">❌ Reprovar</button>' : '')
         + (st === 'aprovado' || st === 'enviado' ? '<button class="btn btn-orange btn-xs" onclick="gerarOSdaLista(\'' + orc.id + '\')" title="Gerar OS/PV">🔧</button>' : '')
         + '<button class="btn btn-ghost btn-xs" onclick="verHistoricoOrc(\'' + orc.id + '\')" title="Ver histórico">📜</button>'
         + '<button class="btn btn-danger btn-xs" onclick="excluirOrcamento(\'' + orc.id + '\')" title="Excluir">×</button>'
         + '</div>'
+        + (orc.status === 'rascunho' && orc.obsAprovadorInterno ? '<div style="font-size:10px;color:var(--red);margin-top:6px;font-style:italic">❌ Reprovado por ' + (orc.aprovadorInterno||'—') + ': ' + orc.obsAprovadorInterno + '</div>' : '')
         + '</div>';
     }).join('')
     + '</div>';
