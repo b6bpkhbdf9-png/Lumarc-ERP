@@ -2949,6 +2949,39 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
   </div>
 </div>
 
+<!-- ===== MODAL CONFIRMAR ENVIO DE ORÇAMENTO AO CLIENTE ===== -->
+<div class="modal-overlay" id="modal-confirmar-envio-orc">
+  <div class="modal" style="width:480px">
+    <div class="modal-hdr">
+      <div class="modal-title">📧 Confirmar Envio ao Cliente</div>
+      <button class="modal-close" onclick="closeModal('modal-confirmar-envio-orc')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="envio-orc-id">
+      <div class="baixa-title-box" id="envio-orc-info"></div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Como foi enviado?</label>
+          <select id="envio-orc-metodo">
+            <option value="email">📧 E-mail</option>
+            <option value="whatsapp">💬 WhatsApp</option>
+            <option value="pessoalmente">🤝 Pessoalmente</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Observação <span style="color:var(--muted);font-weight:400">(opcional)</span></label>
+          <input type="text" id="envio-orc-obs" placeholder="Ex: enviado para joao@cliente.com.br">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-confirmar-envio-orc')">Cancelar</button>
+      <button class="btn btn-green" onclick="confirmarEnvioOrc()">✅ Confirmar Envio</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== MODAL BAIXA RÁPIDA — RECEBER ===== -->
 <div class="modal-overlay" id="modal-baixa-receber">
   <div class="modal" style="width:520px">
@@ -19738,6 +19771,7 @@ function aprovarOrcamentoRapido(id) {
   orc.status = 'liberado';
   orc.aprovadorInterno = currentUser ? currentUser.nome : 'Sistema';
   orc.obsAprovadorInterno = '';
+  orc.dataLiberado = new Date().toISOString();
   orc.updatedAt = now;
   orc._updatedAt = new Date().toISOString();
   orc.historico = orc.historico || [];
@@ -19746,6 +19780,49 @@ function aprovarOrcamentoRapido(id) {
   renderOrcamentosTab();
   updateTopbarOrcBadge();
   showToast('✅ Orçamento ' + orc.num + ' aprovado — liberado para envio!');
+}
+
+// ── CONFIRMAÇÃO DE ENVIO AO CLIENTE ─────────────────────────────────────────
+// Um orçamento aprovado internamente ('liberado') ainda depende de alguém
+// realmente enviar ao cliente — passo manual que pode ser esquecido. Em vez
+// de só trocar o status escondido no seletor genérico, exige uma confirmação
+// explícita (como foi enviado + observação), registrada no histórico. Um
+// orçamento 'liberado' há muito tempo sem essa confirmação gera alerta no
+// sino de notificações (ver buildAllAlerts).
+function abrirConfirmarEnvioOrc(id) {
+  var orc = (DB.orcamentos || []).find(function(o) { return o.id === id; });
+  if (!orc) return;
+  g('envio-orc-id').value = id;
+  g('envio-orc-info').textContent = orc.num + ' — ' + (orc.cliNome || 'Sem cliente') + ' — ' + fmt(orc.totalPreco||0);
+  g('envio-orc-metodo').value = 'email';
+  g('envio-orc-obs').value = '';
+  openModal('modal-confirmar-envio-orc');
+}
+
+function confirmarEnvioOrc() {
+  var id = g('envio-orc-id').value;
+  var orc = (DB.orcamentos || []).find(function(o) { return o.id === id; });
+  if (!orc) return;
+  var metodo = g('envio-orc-metodo').value;
+  var metodoLbl = { email:'E-mail', whatsapp:'WhatsApp', pessoalmente:'Pessoalmente', outro:'Outro' }[metodo] || metodo;
+  var obs = g('envio-orc-obs').value.trim();
+  var now = new Date().toLocaleString('pt-BR');
+  orc.status = 'enviado';
+  orc.envioConfirmadoPor = currentUser ? currentUser.nome : 'Sistema';
+  orc.envioMetodo = metodo;
+  orc.dataEnvioConfirmado = new Date().toISOString();
+  orc.updatedAt = now;
+  orc._updatedAt = new Date().toISOString();
+  orc.historico = orc.historico || [];
+  orc.historico.push({
+    data: now, status: 'enviado',
+    obs: 'Envio confirmado por ' + orc.envioConfirmadoPor + ' via ' + metodoLbl + (obs ? ': ' + obs : ''),
+  });
+  saveAll(true);
+  closeModal('modal-confirmar-envio-orc');
+  renderOrcamentosTab();
+  updateTopbarOrcBadge();
+  showToast('📧 Envio confirmado — ' + orc.num + ' marcado como Enviado!');
 }
 
 function reprovarOrcamentoRapidoDialog(id) {
@@ -19912,11 +19989,17 @@ function renderOrcamentosTab() {
         + '<button class="btn btn-ghost btn-xs" onclick="duplicarOrcamento(\'' + orc.id + '\')" title="Duplicar este orçamento">⧉</button>'
         + (st === 'aguardando' && canApprove ? '<button class="btn btn-green btn-xs" onclick="aprovarOrcamentoRapido(\'' + orc.id + '\')">✅ Aprovar</button>' : '')
         + (st === 'aguardando' && canApprove ? '<button class="btn btn-danger btn-xs" onclick="reprovarOrcamentoRapidoDialog(\'' + orc.id + '\')">❌ Reprovar</button>' : '')
+        + (st === 'liberado' ? '<button class="btn btn-green btn-xs" onclick="abrirConfirmarEnvioOrc(\'' + orc.id + '\')">📧 Confirmar Envio</button>' : '')
         + (st === 'aprovado' || st === 'enviado' ? '<button class="btn btn-orange btn-xs" onclick="gerarOSdaLista(\'' + orc.id + '\')" title="Gerar OS/PV">🔧</button>' : '')
         + '<button class="btn btn-ghost btn-xs" onclick="verHistoricoOrc(\'' + orc.id + '\')" title="Ver histórico">📜</button>'
         + '<button class="btn btn-danger btn-xs" onclick="excluirOrcamento(\'' + orc.id + '\')" title="Excluir">×</button>'
         + '</div>'
         + (orc.status === 'rascunho' && orc.obsAprovadorInterno ? '<div style="font-size:10px;color:var(--red);margin-top:6px;font-style:italic">❌ Reprovado por ' + (orc.aprovadorInterno||'—') + ': ' + orc.obsAprovadorInterno + '</div>' : '')
+        + (orc.status === 'liberado' && orc.dataLiberado ? (function(){
+            var dias = Math.round((Date.now() - new Date(orc.dataLiberado)) / 86400000);
+            var cor = dias >= 2 ? 'var(--red)' : 'var(--muted)';
+            return '<div style="font-size:10px;color:' + cor + ';margin-top:6px;font-weight:' + (dias>=2?'700':'400') + '">🔓 Liberado há ' + dias + ' dia(s) — ainda não enviado' + (dias>=2?' ⚠️':'') + '</div>';
+          })() : '')
         + '</div>';
     }).join('')
     + '</div>';
@@ -27843,6 +27926,20 @@ function buildAllAlerts() {
     alertas.push({icon:'📝', titulo:rcPend.length+' RC aguardando aprovação',
       desc:'Requisições de compra pendentes', link:'tab-rc'});
   }
+
+  // Orçamentos aprovados internamente ('liberado') há mais de 48h sem
+  // confirmação de envio ao cliente — o cenário que o usuário quer evitar:
+  // aprovar e esquecer de mandar.
+  var limiteEnvio = new Date(); limiteEnvio.setHours(limiteEnvio.getHours() - 48);
+  var agora = new Date();
+  (DB.orcamentos||[]).filter(function(o){
+    if (o.status !== 'liberado' || !o.dataLiberado) return false;
+    return new Date(o.dataLiberado) < limiteEnvio;
+  }).slice(0,5).forEach(function(o){
+    var dias = Math.round((agora - new Date(o.dataLiberado)) / 86400000);
+    alertas.push({icon:'📧', titulo:'Envio não confirmado: '+o.num,
+      desc:(o.cliNome||'Sem cliente')+' — liberado há '+dias+' dia(s), ainda não enviado', link:'tab-orcamentos'});
+  });
 
   return alertas;
 }
