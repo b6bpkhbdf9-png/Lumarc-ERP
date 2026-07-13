@@ -8957,8 +8957,17 @@ function mergeArrayByKey(localArr, remoteArr, keyField) {
       merged[key] = rItem;
       order.push(key);
     } else {
-      var lTime = Date.parse(lItem._updatedAt || lItem.updatedAt || 0) || 0;
-      var rTime = Date.parse(rItem._updatedAt || rItem.updatedAt || 0) || 0;
+      // IMPORTANTE: nunca usar updatedAt (formato pt-BR, ex: "09/07/2026")
+      // como fallback aqui. Date.parse() em formato brasileiro é ambíguo —
+      // datas com dia ≤12 são lidas como mês/dia (formato americano),
+      // podendo fazer um registro de 9 de julho parecer ser de 7 de
+      // setembro. Isso já causou reversão de aprovações de orçamento:
+      // um registro ANTIGO sem _updatedAt (de antes dessa correção)
+      // "ganhava" o merge contra uma aprovação de HOJE só por causa da
+      // data mal interpretada. Sem _updatedAt confiável, o registro conta
+      // como "muito antigo" (época zero) — nunca vence por engano.
+      var lTime = Date.parse(lItem._updatedAt || 0) || 0;
+      var rTime = Date.parse(rItem._updatedAt || 0) || 0;
       if (lItem.status && rItem.status && lItem.status !== rItem.status && typeof syncLog === 'function') {
         syncLog('🔍 [DIAG] Merge vendo status diferente em ' + (lItem.num||key) + ': local="' + lItem.status + '"(' + (lItem._updatedAt||'sem data') + ') vs nuvem="' + rItem.status + '"(' + (rItem._updatedAt||'sem data') + ') → vencedor: ' + (rTime > lTime ? 'NUVEM' : 'LOCAL'));
       }
@@ -16597,6 +16606,29 @@ function migrarFotosParaBinSeparado() {
   localStorage.setItem('lumarc_fotos_migradas_v1', '1');
 }
 
+// Migração única: orçamentos gravados ANTES da correção do campo
+// _updatedAt (ISO) só têm o campo antigo em pt-BR, que é ambíguo demais
+// pra confiar na comparação do merge (ver comentário em mergeArrayByKey).
+// Como não dá pra recuperar com segurança a data real desses registros
+// antigos a partir do formato ambíguo, preenche com o momento desta
+// migração — a partir de agora, qualquer edição real volta a atualizar
+// esse campo corretamente. Sem essa correção, o registro legado ficaria
+// preso "sem data" (época zero) para sempre, o que é seguro mas
+// desnecessariamente conservador nas comparações futuras.
+function backfillUpdatedAtOrcamentos() {
+  if (localStorage.getItem('lumarc_backfill_updatedat_v1_done')) return;
+  var corrigidos = 0;
+  var agora = new Date().toISOString();
+  (DB.orcamentos || []).forEach(function(o) {
+    if (!o._updatedAt) { o._updatedAt = agora; corrigidos++; }
+  });
+  if (corrigidos > 0) {
+    console.log('[Backfill _updatedAt] ' + corrigidos + ' orçamento(s) corrigido(s).');
+    saveAll(true);
+  }
+  localStorage.setItem('lumarc_backfill_updatedat_v1_done', '1');
+}
+
 // ── IDENTIFICADOR ÚNICO DE SESSÃO/MÁQUINA ───────────────────────────────
 // Usado para o sistema reconhecer "isso fui eu que enviei" ao sincronizar,
 // e não reaplicar de volta o próprio envio. ANTES isso usava
@@ -18277,6 +18309,7 @@ function limparDuplicatasFolha() {
   function _bootSeguro(fn, nome) {
     try { fn(); } catch(e) { console.error('[Boot] Falha em ' + nome + ' (ignorada, continuando boot):', e); }
   }
+  _bootSeguro(backfillUpdatedAtOrcamentos, 'backfillUpdatedAtOrcamentos');
   _bootSeguro(migrarFotosParaBinSeparado, 'migrarFotosParaBinSeparado');
   _bootSeguro(migrarStatusOrcLegado, 'migrarStatusOrcLegado');
   _bootSeguro(_iniciarRascunhoAutoSave, '_iniciarRascunhoAutoSave');
