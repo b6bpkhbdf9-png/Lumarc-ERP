@@ -5170,7 +5170,8 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
       <select id="orc-list-status" onchange="renderOrcamentosTab()" style="width:160px">
         <option value="">Todos os status</option>
         <option value="rascunho">Rascunho</option>
-        <option value="aguardando">Aguardando</option>
+        <option value="aguardando">Aguardando Aprovação</option>
+        <option value="liberado">Aguardando Envio</option>
         <option value="enviado">Enviado</option>
         <option value="aprovado">Aprovado</option>
         <option value="recusado">Recusado</option>
@@ -19450,7 +19451,7 @@ function updatePatPreview() {
 const ORC_STATUS_LABELS = {
   rascunho:   'Rascunho',
   aguardando: 'Aguardando Aprovação',
-  liberado:   'Liberado p/ Envio',
+  liberado:   'Aguardando Envio',
   enviado:    'Enviado',
   aprovado:   'Aprovado',
   recusado:   'Recusado',
@@ -19956,7 +19957,7 @@ function renderOrcamentosTab() {
       { icon:'📋', val:tots.total,      lbl:'Total',       cls:'blue'   },
       { icon:'📝', val:tots.rascunho,   lbl:'Rascunhos',   cls:'blue'   },
       { icon:'⏳', val:tots.aguardando, lbl:'Aguardando Aprovação',  cls:'orange' },
-      { icon:'🔓', val:tots.liberado,   lbl:'Liberados',   cls:'green'  },
+      { icon:'🔓', val:tots.liberado,   lbl:'Aguardando Envio', cls:'green'  },
       { icon:'📨', val:tots.enviado,    lbl:'Enviados',    cls:'blue'   },
       { icon:'✅', val:tots.aprovado + ' · ' + fmt(valAprov), lbl:'Aprovados', cls:'green' },
     ].map(function(k) {
@@ -20039,7 +20040,7 @@ function renderOrcamentosTab() {
         + (orc.status === 'liberado' && orc.dataLiberado ? (function(){
             var dias = Math.round((Date.now() - new Date(orc.dataLiberado)) / 86400000);
             var cor = dias >= 2 ? 'var(--red)' : 'var(--muted)';
-            return '<div style="font-size:10px;color:' + cor + ';margin-top:6px;font-weight:' + (dias>=2?'700':'400') + '">🔓 Liberado há ' + dias + ' dia(s) — ainda não enviado' + (dias>=2?' ⚠️':'') + '</div>';
+            return '<div style="font-size:10px;color:' + cor + ';margin-top:6px;font-weight:' + (dias>=2?'700':'400') + '">🔓 Aguardando envio há ' + dias + ' dia(s)' + (dias>=2?' ⚠️':'') + '</div>';
           })() : '')
         + '</div>';
     }).join('')
