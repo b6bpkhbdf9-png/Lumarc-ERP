@@ -8959,14 +8959,10 @@ function mergeArrayByKey(localArr, remoteArr, keyField) {
     } else {
       var lTime = Date.parse(lItem._updatedAt || lItem.updatedAt || 0) || 0;
       var rTime = Date.parse(rItem._updatedAt || rItem.updatedAt || 0) || 0;
+      if (lItem.status && rItem.status && lItem.status !== rItem.status && typeof syncLog === 'function') {
+        syncLog('🔍 [DIAG] Merge vendo status diferente em ' + (lItem.num||key) + ': local="' + lItem.status + '"(' + (lItem._updatedAt||'sem data') + ') vs nuvem="' + rItem.status + '"(' + (rItem._updatedAt||'sem data') + ') → vencedor: ' + (rTime > lTime ? 'NUVEM' : 'LOCAL'));
+      }
       if (rTime > lTime) {
-        // Diagnóstico: se um orçamento tiver o status TROCADO pela versão
-        // remota, registra no log de sincronização — isso ajuda a
-        // investigar qualquer caso futuro de "aprovação que reverteu
-        // sozinha", em vez de acontecer silenciosamente sem rastro.
-        if (lItem.status && rItem.status && lItem.status !== rItem.status && typeof syncLog === 'function') {
-          syncLog('⚠️ Merge trocou status de ' + (lItem.num || key) + ': "' + lItem.status + '" (local, ' + (lItem._updatedAt||'sem data') + ') → "' + rItem.status + '" (nuvem, ' + (rItem._updatedAt||'sem data') + ')');
-        }
         merged[key] = rItem;
       }
     }
@@ -16842,6 +16838,7 @@ async function cloudPush(manual, _retryCount) {
         // o que já conhecemos — evita reprocessar o mesmo estado duas vezes.
         if (remoteRecord && !remoteRecord._init &&
             remoteRecord._cloudPushedAt !== cloudLastSaved) {
+          if (typeof syncLog === 'function') syncLog('🔍 [DIAG] cloudPush pull-before-push: aplicando merge (remoteAt=' + remoteRecord._cloudPushedAt + ' cloudLastSaved=' + cloudLastSaved + ')');
           applyLoadedData(remoteRecord);
           cloudLastSaved = remoteRecord._cloudPushedAt || cloudLastSaved;
         }
@@ -17149,7 +17146,8 @@ async function cloudPollSilent() {
 
     // Verifica se foi salvo por OUTRA sessão (não nós mesmos)
     const pushedBy = record._pushedBy || '';
-    if (pushedBy === SESSION_ID && _syncLastRemoteAt !== null) return; // fomos nós
+    if (typeof syncLog === 'function') syncLog('🔍 [DIAG] Poll: remoteAt=' + remoteAt + ' pushedBy=' + pushedBy + ' (eu=' + SESSION_ID + ') _syncLastRemoteAt=' + _syncLastRemoteAt);
+    if (pushedBy === SESSION_ID && _syncLastRemoteAt !== null) { if (typeof syncLog === 'function') syncLog('🔍 [DIAG] Poll: pulando, fomos nós.'); return; } // fomos nós
 
     _syncLastRemoteAt = remoteAt;
     if (_syncLastRemoteAt === null) { _syncLastRemoteAt = remoteAt; return; } // primeira vez: só registra
@@ -17160,6 +17158,7 @@ async function cloudPollSilent() {
     var remoteOrcNum  = remoteOrcData['o-num'] || '';
 
     if (hasUnsavedOrc() && orcAtual && remoteOrcNum !== orcAtual) {
+      if (typeof syncLog === 'function') syncLog('🔍 [DIAG] Poll: aplicando dados remotos (preservando formulário em edição)');
       // Aplica SOMENTE os dados de DB (OS, financeiro, etc.) — preserva formulário
       var savedOrcData  = record.orcData;
       record.orcData    = null;  // temporariamente remove orcData do payload
@@ -17173,6 +17172,7 @@ async function cloudPollSilent() {
       // na próxima vez que a nuvem fosse consultada de novo.
       showToast('🔄 Dados atualizados (orçamento atual preservado — tem edições não salvas)');
     } else {
+      if (typeof syncLog === 'function') syncLog('🔍 [DIAG] Poll: aplicando dados remotos (ramo normal)');
       applyLoadedData(record);
     }
 
@@ -19865,12 +19865,14 @@ function aprovarOrcamentoRapido(id) {
   var orc = (DB.orcamentos || []).find(function(o) { return o.id === id; });
   if (!orc) return;
   var now = new Date().toLocaleString('pt-BR');
+  var nowISO = new Date().toISOString();
+  if (typeof syncLog === 'function') syncLog('🔍 [DIAG] Aprovando ' + orc.num + ' (id=' + id + ') — status antes: ' + orc.status + ', _updatedAt antes: ' + (orc._updatedAt||'—') + ', agora: ' + nowISO);
   orc.status = 'liberado';
   orc.aprovadorInterno = currentUser ? currentUser.nome : 'Sistema';
   orc.obsAprovadorInterno = '';
-  orc.dataLiberado = new Date().toISOString();
+  orc.dataLiberado = nowISO;
   orc.updatedAt = now;
-  orc._updatedAt = new Date().toISOString();
+  orc._updatedAt = nowISO;
   orc.historico = orc.historico || [];
   orc.historico.push({ data: now, status: 'liberado', obs: 'Aprovado internamente por ' + orc.aprovadorInterno });
   saveAll(true);
