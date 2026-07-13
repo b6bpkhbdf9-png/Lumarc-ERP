@@ -8621,6 +8621,9 @@ function clearOrc(force) {
     }
   });
   g('o-data').value = new Date().toISOString().split('T')[0];
+  if (g('g-ind-pct')) {
+    g('g-ind-pct').value = (DB.config && DB.config.indPctPadrao != null) ? DB.config.indPctPadrao : 20;
+  }
   orcFotos = [];
   if (typeof renderOrcFotos === 'function') renderOrcFotos();
   renderResumo();
@@ -9870,6 +9873,17 @@ function calcMaqCusto() {
 function saveMaq() {
   const nome = g('mm-nome').value.trim();
   if (!nome) { alert('Informe o nome da máquina.'); return; }
+  // Bloqueia duplicata óbvia: mesmo nome, só quando estamos criando uma NOVA
+  // máquina (não ao editar a mesma linha).
+  if (!(DB.editMaqIdx >= 0)) {
+    var idxExistente = (DB.maquinas||[]).findIndex(function(m) {
+      return (m.nome||'').trim().toLowerCase() === nome.toLowerCase();
+    });
+    if (idxExistente >= 0) {
+      if (!confirm('Já existe uma máquina "' + nome + '" cadastrada. Deseja editar o registro existente em vez de criar outro?')) return;
+      DB.editMaqIdx = idxExistente;
+    }
+  }
   const {custoMes, custoHora, deprec, man, energia} = calcMaqCusto();
   const obj = {
     id: (DB.editMaqIdx >= 0 && DB.maquinas[DB.editMaqIdx]) ? DB.maquinas[DB.editMaqIdx].id : _stableId('maq', g('mm-nome')?.value),
@@ -9964,11 +9978,20 @@ function openDespModal(idx) {
 function saveDesp() {
   const desc = g('md-desc').value.trim();
   if (!desc) { alert('Informe a descrição.'); return; }
+  const mes = g('md-mes').value, ano = g('md-ano').value;
+  // Bloqueia duplicata óbvia: mesma descrição + mesmo mês/ano, só quando
+  // estamos criando uma NOVA despesa (não ao editar a mesma linha).
+  if (!(DB.editDespIdx >= 0)) {
+    var jaExiste = (DB.despesas||[]).some(function(d) {
+      return (d.desc||'').trim().toLowerCase() === desc.toLowerCase() && String(d.mes) === String(mes) && String(d.ano) === String(ano);
+    });
+    if (jaExiste && !confirm('Já existe uma despesa "' + desc + '" cadastrada para este mês/ano. Cadastrar mesmo assim?')) return;
+  }
   const obj = {
-    id: (DB.editDespIdx >= 0 && DB.despesas[DB.editDespIdx]) ? DB.despesas[DB.editDespIdx].id : _stableId('desp', desc),
+    id: (DB.editDespIdx >= 0 && DB.despesas[DB.editDespIdx]) ? DB.despesas[DB.editDespIdx].id : _stableId('desp', desc, mes + '-' + ano),
     desc, cat: g('md-cat').value,
-    val: gv('md-val'), mes: g('md-mes').value,
-    ano: g('md-ano').value, rec: g('md-rec').value,
+    val: gv('md-val'), mes: mes,
+    ano: ano, rec: g('md-rec').value,
     obs: g('md-obs').value,
     _updatedAt: new Date().toISOString(),
   };
@@ -10058,7 +10081,9 @@ function _calcularPoolCustoIndireto() {
 
 function applyIndToOrc() {
   // Lê o % calculado a partir do pool de custo indireto completo (despesas
-  // fixas + MO indireta + máquinas indiretas) e aplica ao orçamento
+  // fixas + MO indireta + máquinas indiretas), aplica ao orçamento ATUAL, e
+  // grava como PADRÃO para todo orçamento novo daqui pra frente — não
+  // precisa mais vir aqui aplicar toda vez antes de montar um orçamento.
   const fat = parseFloat(g('dk-fat')?.value)||0;
   const pool = _calcularPoolCustoIndireto();
   const pct = fat > 0 ? (pool.total / fat * 100) : parseFloat(g('g-ind-pct')?.value)||20;
@@ -10066,7 +10091,13 @@ function applyIndToOrc() {
   if (g('g-ind-pct')) g('g-ind-pct').value = pct.toFixed(1);
   orcItems.forEach(it => { it.indPct = pct; });
   recalcAllItems();
-  showToast(`✅ ${fmtP(pct)} de custo indireto aplicado (despesas fixas: ${fmt(pool.totalDesp)} + MO indireta: ${fmt(pool.totalFuncIndireto)} + máquinas indiretas: ${fmt(pool.totalMaqIndireta)})`);
+
+  if (!DB.config) DB.config = {};
+  DB.config.indPctPadrao = pct;
+  DB.config._indPctPadraoAtualizadoEm = new Date().toISOString();
+  saveAll(true);
+
+  showToast(`✅ ${fmtP(pct)} de custo indireto aplicado e definido como padrão para novos orçamentos (despesas fixas: ${fmt(pool.totalDesp)} + MO indireta: ${fmt(pool.totalFuncIndireto)} + máquinas indiretas: ${fmt(pool.totalMaqIndireta)})`);
   goToTab('tab-orc');
 }
 
@@ -18228,6 +18259,16 @@ function limparDuplicatasFolha() {
     if (!localStorage.getItem('lumarc_dedup_cad_v2_done')) {
       localStorage.removeItem('lumarc_dedup_cad_v1_done');
       localStorage.setItem('lumarc_dedup_cad_v2_done', '1');
+    }
+    // v3: a v2 limpou o estoque existente, mas nada impedia CRIAR duplicata
+    // nova diretamente ao salvar (saveMaq/saveDesp empurravam sem checar se
+    // já existia um registro com o mesmo nome/descrição). Isso foi corrigido
+    // agora com uma checagem no próprio salvamento; esta rodada final limpa
+    // o que se acumulou desde a v2 antes da correção entrar em vigor.
+    if (!localStorage.getItem('lumarc_dedup_cad_v3_done')) {
+      localStorage.removeItem('lumarc_dedup_cad_v1_done');
+      localStorage.removeItem('lumarc_dedup_cad_v2_done');
+      localStorage.setItem('lumarc_dedup_cad_v3_done', '1');
     }
     var ultimaGeracao = localStorage.getItem('lumarc_folha_ultima_geracao');
     var hojeStr = new Date().toISOString().slice(0,10);
