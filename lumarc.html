@@ -8960,6 +8960,13 @@ function mergeArrayByKey(localArr, remoteArr, keyField) {
       var lTime = Date.parse(lItem._updatedAt || lItem.updatedAt || 0) || 0;
       var rTime = Date.parse(rItem._updatedAt || rItem.updatedAt || 0) || 0;
       if (rTime > lTime) {
+        // Diagnóstico: se um orçamento tiver o status TROCADO pela versão
+        // remota, registra no log de sincronização — isso ajuda a
+        // investigar qualquer caso futuro de "aprovação que reverteu
+        // sozinha", em vez de acontecer silenciosamente sem rastro.
+        if (lItem.status && rItem.status && lItem.status !== rItem.status && typeof syncLog === 'function') {
+          syncLog('⚠️ Merge trocou status de ' + (lItem.num || key) + ': "' + lItem.status + '" (local, ' + (lItem._updatedAt||'sem data') + ') → "' + rItem.status + '" (nuvem, ' + (rItem._updatedAt||'sem data') + ')');
+        }
         merged[key] = rItem;
       }
     }
@@ -17158,11 +17165,15 @@ async function cloudPollSilent() {
       record.orcData    = null;  // temporariamente remove orcData do payload
       applyLoadedData(record);
       record.orcData    = savedOrcData;  // restaura para próximas chamadas
-      _cloudDirty = false;
+      // NÃO zera _cloudDirty aqui: se havia uma mudança local pendente (ex:
+      // uma aprovação de orçamento que ainda está no debounce de 2s do
+      // scheduleAutoSave), zerar a flag faria essa mudança NUNCA ser
+      // enviada pra nuvem — mesmo continuando correta na tela local, ela
+      // sumiria pra qualquer outro usuário e reapareceria como 'desfeita'
+      // na próxima vez que a nuvem fosse consultada de novo.
       showToast('🔄 Dados atualizados (orçamento atual preservado — tem edições não salvas)');
     } else {
       applyLoadedData(record);
-      _cloudDirty = false;
     }
 
     // Re-render active tab
