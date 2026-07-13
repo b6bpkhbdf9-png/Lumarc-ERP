@@ -4974,7 +4974,15 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
         <select id="o-tipo"><option value="orcamento">Orçamento</option><option value="medicao">Boletim de Medição</option><option value="os">Ordem de Serviço</option><option value="pedido">Pedido de Venda</option></select>
       </div>
       <div class="form-group"><label>Status</label>
-        <select id="o-status" onchange="updStatus();toggleMotivoPerda()"><option value="draft">Rascunho</option><option value="sent">Enviado</option><option value="approved">Aprovado</option><option value="refused">Recusado</option><option value="cancelled">Cancelado</option></select>
+        <select id="o-status" onchange="updStatus();toggleMotivoPerda()">
+          <option value="rascunho">Rascunho</option>
+          <option value="aguardando">Aguardando Aprovação</option>
+          <option value="liberado">Aguardando Envio</option>
+          <option value="enviado">Enviado</option>
+          <option value="aprovado">Aprovado</option>
+          <option value="recusado">Recusado</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
       </div>
       <div class="form-group" id="o-motivo-wrap" style="display:none"><label>Motivo da perda</label>
         <select id="o-motivo-perda">
@@ -8588,10 +8596,9 @@ function updStatus() {
   markOrcDirty();
   if(g('sb-num'))    g('sb-num').textContent    = g('o-num')?.value || '—';
   if(g('sb-cli'))    g('sb-cli').textContent    = g('c-nome')?.value || '—';
-  const s = g('o-status')?.value || 'draft';
-  const lbl = {draft:'Rascunho',sent:'Enviado',approved:'Aprovado',refused:'Recusado'};
-  const cls = {draft:'badge-draft',sent:'badge-sent',approved:'badge-approved',refused:'badge-refused'};
-  if(g('sb-status')) g('sb-status').innerHTML = `<span class="badge ${cls[s]}">${lbl[s]}</span>`;
+  const s = g('o-status')?.value || 'rascunho';
+  const lbl = ORC_STATUS_LABELS[s] || s;
+  if(g('sb-status')) g('sb-status').innerHTML = `<span class="badge orc-s-${s}">${lbl}</span>`;
 }
 
 // ---- INIT / CLEAR ----
@@ -16532,6 +16539,32 @@ function hidratarFotosLazy(root) {
 // desincha o payload principal de quem já tinha orçamentos/OS com fotos
 // de antes desta correção — sem essa migração, os dados antigos
 // continuariam grandes demais para sincronizar mesmo com o código novo.
+// Migração única: o seletor de status dentro da tela de edição do
+// orçamento usava valores antigos em inglês (draft/sent/approved/refused/
+// cancelled) que NUNCA bateram com os valores reais usados no resto do
+// sistema (rascunho/aguardando/enviado/aprovado/recusado/cancelado) — um
+// bug pré-existente, corrigido agora. Qualquer orçamento salvo sem nunca
+// ter o status trocado manualmente pela lista pode ter ficado gravado com
+// o valor em inglês. Esta migração corrige os que ainda estiverem assim.
+function migrarStatusOrcLegado() {
+  if (localStorage.getItem('lumarc_status_legado_v1_done')) return;
+  var mapa = { draft:'rascunho', sent:'enviado', approved:'aprovado', refused:'recusado', cancelled:'cancelado' };
+  var corrigidos = 0;
+  (DB.orcamentos || []).forEach(function(o) {
+    if (mapa[o.status]) {
+      o.status = mapa[o.status];
+      o._updatedAt = new Date().toISOString();
+      corrigidos++;
+    }
+  });
+  if (corrigidos > 0) {
+    console.log('[Migração Status] ' + corrigidos + ' orçamento(s) com status legado corrigido(s).');
+    showToast('🔧 Correção automática: ' + corrigidos + ' orçamento(s) com status desatualizado corrigido(s).', 'warn');
+    saveAll(true);
+  }
+  localStorage.setItem('lumarc_status_legado_v1_done', '1');
+}
+
 function migrarFotosParaBinSeparado() {
   if (localStorage.getItem('lumarc_fotos_migradas_v1')) return;
   var convertidas = 0;
@@ -18234,6 +18267,7 @@ function limparDuplicatasFolha() {
     try { fn(); } catch(e) { console.error('[Boot] Falha em ' + nome + ' (ignorada, continuando boot):', e); }
   }
   _bootSeguro(migrarFotosParaBinSeparado, 'migrarFotosParaBinSeparado');
+  _bootSeguro(migrarStatusOrcLegado, 'migrarStatusOrcLegado');
   _bootSeguro(_iniciarRascunhoAutoSave, '_iniciarRascunhoAutoSave');
   _bootSeguro(verificarRascunhoPendente, 'verificarRascunhoPendente');
   _bootSeguro(garantirIDs, 'garantirIDs');
@@ -19532,6 +19566,16 @@ function salvarOrcamento() {
   var existing = DB.orcamentos.findIndex(function(o) { return o.num === num; });
 
   var status = g('o-status') ? g('o-status').value : 'rascunho';
+
+  // Ninguém deve conseguir pular a aprovação selecionando 'Aguardando Envio'
+  // direto neste seletor e salvando — esse status só pode ser alcançado
+  // através do botão de aprovação (aprovarOrcamentoRapido), restrito a
+  // admin/gerente na aba Meus Orçamentos.
+  var jaEstavaLiberado = existing >= 0 && DB.orcamentos[existing].status === 'liberado';
+  if (status === 'liberado' && !jaEstavaLiberado) {
+    alert('O status "Aguardando Envio" só pode ser definido através da aprovação, na aba "Meus Orçamentos" (botão ✅ Aprovar). Envie este orçamento para aprovação em vez disso.');
+    return;
+  }
 
   var registro = {
     id:         existing >= 0 ? DB.orcamentos[existing].id : ('orc-' + Date.now()),
