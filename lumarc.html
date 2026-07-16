@@ -17056,8 +17056,20 @@ async function cloudPull(manual) {
       applyLoadedData(record, manual);
       if (manual) showToast('✅ Sincronização concluída com sucesso!');
     }
-    _cloudDirty = false;
+    // NÃO zera _cloudDirty aqui incondicionalmente: se houver uma mudança
+    // local pendente (ex: uma aprovação ainda no debounce de 2s do
+    // scheduleAutoSave, e o usuário clicou "Sincronizar agora" ou o boot
+    // disparou o pull antes desse push completar), zerar a flag cancelaria
+    // esse envio pendente silenciosamente — a mudança ficaria certa na
+    // tela mas nunca sairia pra nuvem. Mesmo bug já corrigido antes em
+    // cloudPollSilent(), presente aqui também numa função diferente.
     setCloudStatus('ok', 'Sincronizado com a nuvem', 'Última sincronização: ' + new Date().toLocaleTimeString('pt-BR'));
+    if (!manual && typeof syncLog === 'function') {
+      var relevantesDepois = (DB.orcamentos||[]).filter(function(o){ return o.status==='liberado' || o.status==='aguardando'; });
+      if (relevantesDepois.length) {
+        syncLog('🔍 [DIAG-BOOT] Estado local DEPOIS do pull da nuvem: ' + relevantesDepois.map(function(o){ return o.num+'='+o.status+'('+(o._updatedAt||'sem data')+')'; }).join(', '));
+      }
+    }
     renderAfterSync(true);
     updateTopbarAlerts && updateTopbarAlerts();
   } catch(e) {
@@ -18156,6 +18168,16 @@ function bootApp() {
   const raw = localStorage.getItem('lumarc_v2');
   if (raw) { try { applyLoadedData(JSON.parse(raw)); } catch(e) { if(typeof addItemOrc==='function') addItemOrc(); } }
   else { if(typeof addItemOrc==='function') addItemOrc(); }
+  // [DIAG] Estado local (antes de qualquer sincronização com a nuvem neste
+  // boot) de orçamentos aprovados/aguardando — evidência crucial pra achar
+  // reversões que acontecem especificamente na abertura do programa.
+  setTimeout(function() {
+    if (typeof syncLog !== 'function') return;
+    var relevantes = (DB.orcamentos||[]).filter(function(o){ return o.status==='liberado' || o.status==='aguardando'; });
+    if (relevantes.length) {
+      syncLog('🔍 [DIAG-BOOT] Estado local ao abrir (antes do pull da nuvem): ' + relevantes.map(function(o){ return o.num+'='+o.status+'('+(o._updatedAt||'sem data')+')'; }).join(', '));
+    }
+  }, 50);
   loadPersistence();
   applyLoginScreenTheme();
   const dashMainTab = document.querySelector('#main-tabs-bar .tab[data-group="dash"]');
