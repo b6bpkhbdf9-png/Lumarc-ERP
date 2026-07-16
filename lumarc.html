@@ -4940,6 +4940,73 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
   </div>
 </div>
 
+<!-- ===================== TAB: SOLICITAÇÕES DE ORÇAMENTO ===================== -->
+<div id="tab-solicitacoes" class="tab-content">
+<div class="main">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div>
+      <h2 style="font-size:16px;font-weight:800">🗒️ Solicitações de Orçamento</h2>
+      <p style="font-size:12px;color:var(--muted)">Quadro de lembretes — nada se perde aqui. Registre a solicitação assim que chegar (WhatsApp, e-mail, visita) e construa o orçamento com calma depois.</p>
+    </div>
+    <button class="btn btn-primary" onclick="abrirModalSolicitacao()">+ Nova Solicitação</button>
+  </div>
+
+  <div id="sol-kpis" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px;max-width:480px"></div>
+
+  <div id="sol-board" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:18px"></div>
+
+  <div style="margin-top:32px">
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">✅ Convertidas recentemente</div>
+    <div id="sol-board-convertidas" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px"></div>
+  </div>
+</div>
+</div>
+
+<!-- ===== MODAL SOLICITAÇÃO DE ORÇAMENTO ===== -->
+<div class="modal-overlay" id="modal-solicitacao">
+  <div class="modal" style="width:560px">
+    <div class="modal-hdr">
+      <div class="modal-title" id="sol-modal-title">🗒️ Nova Solicitação de Orçamento</div>
+      <button class="modal-close" onclick="closeModal('modal-solicitacao')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="sol-id">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Cliente</label>
+          <input type="text" id="sol-cliente" placeholder="Nome do cliente">
+        </div>
+        <div class="form-group">
+          <label>Contato</label>
+          <input type="text" id="sol-contato" placeholder="Telefone / e-mail">
+        </div>
+        <div class="form-group">
+          <label>Origem</label>
+          <select id="sol-origem">
+            <option value="whatsapp">💬 WhatsApp</option>
+            <option value="email">📧 E-mail</option>
+            <option value="visita">🚗 Visita/Campo</option>
+            <option value="outro">📌 Outro</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Anotações importantes</label>
+          <textarea id="sol-desc" rows="4" placeholder="O que o cliente pediu, prazos, detalhes técnicos, observações..."></textarea>
+        </div>
+        <div class="form-group full">
+          <label>Anexos <span style="color:var(--muted);font-weight:400">(fotos ou PDF — desenhos, especificações, fotos do local)</span></label>
+          <input type="file" id="sol-anexo-input" accept="image/*,.pdf" multiple onchange="addAnexoSolicitacao(event)">
+          <div id="sol-anexos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:8px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-solicitacao')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarSolicitacao()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== TAB: ORÇAMENTO ===================== -->
 <div id="tab-orc" class="tab-content active">
 <div class="main">
@@ -6547,6 +6614,7 @@ let DB = {
   terceirizacoes:   [], // serviços terceirizados vinculados a OS
   contratos:        [], // contratos recorrentes / manutenção
   boletins:         [], // boletins de medição vinculados a contratos
+  solicitacoesOrc:  [], // quadro de solicitações de orçamento pendentes (post-its)
   saldoRealConfig:  { valor: 0, data: '', origem: '' }, // saldo bancário real
   notasFiscais:     [], // notas fiscais vinculadas a OS
   onboardingDone:   false, // first-run onboarding flag
@@ -8820,7 +8888,7 @@ function recalcAll() { recalcAllItems(); }
 // Necessário para o merge de sincronização (mergeArrayByKey) funcionar
 // corretamente. Sem id, registros duplicam a cada sync entre usuários.
 function garantirIdsFinanceiros() {
-  var prefixos = { contasPagar: 'cp', contasReceber: 'cr', requisicoes: 'rc' };
+  var prefixos = { contasPagar: 'cp', contasReceber: 'cr', requisicoes: 'rc', solicitacoesOrc: 'solreq' };
   Object.keys(prefixos).forEach(function(arrName) {
     (DB[arrName] || []).forEach(function(item) {
       if (!item.id) {
@@ -8853,7 +8921,7 @@ function saveAll(silent) {
     config:        DB.config,
     tributario:    DB.tributario,
     folhaMensal:   DB.folhaMensal,
-    orcamentos: DB.orcamentos, requisicoes: DB.requisicoes, caixasConfig: DB.caixasConfig, planoContas: DB.planoContas,
+    orcamentos: DB.orcamentos, requisicoes: DB.requisicoes, solicitacoesOrc: DB.solicitacoesOrc, caixasConfig: DB.caixasConfig, planoContas: DB.planoContas,
     transferenciasCaixa: DB.transferenciasCaixa || [],
     regrasClassificacaoCaixa: DB.regrasClassificacaoCaixa || null,
     nfAliases: DB.nfAliases || {},
@@ -9094,6 +9162,7 @@ function applyLoadedData(save, skipOrcData) {
   DB.folhaMensal   = save.folhaMensal   || [];
   DB.orcamentos     = mergeArrayByKey(DB.orcamentos, save.orcamentos, 'id');
   DB.requisicoes    = mergeArrayByKey(DB.requisicoes, save.requisicoes, 'id');
+  DB.solicitacoesOrc = mergeArrayByKey(DB.solicitacoesOrc, save.solicitacoesOrc, 'id');
   DB.caixasConfig  = save.caixasConfig  || null;
   // Merge por código em vez de sobrescrever — preserva contas criadas localmente
   var _remotePlano = (save.planoContas || []).map(function(p) {
@@ -9215,6 +9284,7 @@ const TAB_GROUPS = {
   orc: {
     subgrupos: [
       { id:'sg-prod', label:'🏭 Produção & Engenharia', tabs: [
+        { id:'tab-solicitacoes', label:'🗒️ Solicitações de Orçamento' },
         { id:'tab-orc',         label:'📋 Orçamento' },
         { id:'tab-orcamentos',  label:'📂 Meus Orçamentos' },
         { id:'tab-os',          label:'🔧 Ordens de Serviço' },
@@ -9543,6 +9613,7 @@ function switchTab(tabId, subTabEl) {
   const renders = {
     'tab-dash':     renderDashboard,
     'tab-orc':      () => {},
+    'tab-solicitacoes': renderSolicitacoesTab,
     'tab-os':       renderOSTab,
     'tab-compras':  renderComprasTable,
     'tab-xml':      initXMLTab,
@@ -19886,6 +19957,214 @@ function mudarStatusOrc(id, novoStatus) {
   showToast('Status atualizado: ' + ORC_STATUS_LABELS[novoStatus]);
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// SOLICITAÇÕES DE ORÇAMENTO — quadro de lembretes (post-its)
+// ════════════════════════════════════════════════════════════════════════════
+// Resolve o problema crônico de solicitações de cliente se perderem antes de
+// virar orçamento. Toda solicitação (WhatsApp, e-mail, visita) é registrada
+// aqui assim que chega, com anotações e anexos, e só sai da fila quando
+// alguém efetivamente inicia o orçamento a partir dela.
+//
+// Anexos (fotos/PDF) reaproveitam o mesmo armazenamento separado (fotoStore)
+// já usado por itens de orçamento e OS — nunca embutidos direto no payload
+// principal, pelo mesmo motivo que já causou o erro 413 antes.
+var _solAnexosTemp = [];
+var _solEditId = null;
+
+function abrirModalSolicitacao(id) {
+  _solEditId = id || null;
+  var sol = id ? (DB.solicitacoesOrc||[]).find(function(s){return s.id===id;}) : null;
+  g('sol-modal-title').textContent = sol ? '🗒️ Editar Solicitação' : '🗒️ Nova Solicitação de Orçamento';
+  g('sol-id').value = id || '';
+  g('sol-cliente').value = sol ? (sol.cliente||'') : '';
+  g('sol-contato').value = sol ? (sol.contato||'') : '';
+  g('sol-origem').value  = sol ? (sol.origem||'whatsapp') : 'whatsapp';
+  g('sol-desc').value    = sol ? (sol.desc||'') : '';
+  _solAnexosTemp = sol ? (sol.anexos||[]).map(function(a){ return Object.assign({}, a); }) : [];
+  renderSolAnexos();
+  openModal('modal-solicitacao');
+}
+
+function addAnexoSolicitacao(event) {
+  var files = Array.from(event.target.files);
+  files.forEach(function(file) {
+    if (file.type === 'application/pdf') {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var ref = fotoStoreSalvar(e.target.result, file.name);
+        ref.tipo = 'pdf';
+        _solAnexosTemp.push(ref);
+        renderSolAnexos();
+      };
+      reader.readAsDataURL(file);
+    } else if (file.type.indexOf('image/') === 0) {
+      comprimirImagem(file, function(dataUrl) {
+        if (!dataUrl) return;
+        var ref = fotoStoreSalvar(dataUrl, file.name);
+        ref.tipo = 'imagem';
+        _solAnexosTemp.push(ref);
+        renderSolAnexos();
+      });
+    }
+  });
+  event.target.value = '';
+}
+
+function renderSolAnexos() {
+  var grid = g('sol-anexos-grid');
+  if (!grid) return;
+  grid.innerHTML = _solAnexosTemp.map(function(a, i) {
+    if (a.tipo === 'pdf') {
+      return '<div style="position:relative;aspect-ratio:1;border-radius:6px;border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--panel);font-size:10px;text-align:center;padding:4px;overflow:hidden">'
+        + '📄<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%">' + (a.name||'PDF') + '</div>'
+        + '<button onclick="removeAnexoSolicitacao(' + i + ')" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1">×</button></div>';
+    }
+    return '<div style="position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--border)">'
+      + htmlFotoTag(a, 'width:100%;height:100%;object-fit:cover')
+      + '<button onclick="removeAnexoSolicitacao(' + i + ')" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1">×</button></div>';
+  }).join('');
+  hidratarFotosLazy(grid);
+}
+
+function removeAnexoSolicitacao(i) {
+  _solAnexosTemp.splice(i, 1);
+  renderSolAnexos();
+}
+
+function salvarSolicitacao() {
+  var cliente = g('sol-cliente').value.trim();
+  if (!cliente) { alert('Informe o cliente.'); return; }
+  if (!DB.solicitacoesOrc) DB.solicitacoesOrc = [];
+  var now = new Date().toISOString();
+  var id = g('sol-id').value;
+  if (id) {
+    var sol = DB.solicitacoesOrc.find(function(s){return s.id===id;});
+    if (sol) {
+      sol.cliente = cliente;
+      sol.contato = g('sol-contato').value.trim();
+      sol.origem  = g('sol-origem').value;
+      sol.desc    = g('sol-desc').value.trim();
+      sol.anexos  = _solAnexosTemp;
+      sol._updatedAt = now;
+    }
+  } else {
+    DB.solicitacoesOrc.push({
+      id: 'solreq-' + Date.now() + '-' + Math.random().toString(36).slice(2,9),
+      cliente: cliente,
+      contato: g('sol-contato').value.trim(),
+      origem:  g('sol-origem').value,
+      desc:    g('sol-desc').value.trim(),
+      anexos:  _solAnexosTemp,
+      status:  'pendente',
+      criadoPor: currentUser ? currentUser.nome : 'Sistema',
+      dataRecebido: now,
+      _updatedAt: now,
+    });
+  }
+  saveAll(true);
+  closeModal('modal-solicitacao');
+  renderSolicitacoesTab();
+  showToast('✅ Solicitação salva!');
+}
+
+function excluirSolicitacao(id) {
+  if (!confirm('Excluir esta solicitação de orçamento? Esta ação não pode ser desfeita.')) return;
+  if (typeof registrarTombstone === 'function') registrarTombstone(id);
+  DB.solicitacoesOrc = (DB.solicitacoesOrc||[]).filter(function(s){ return s.id !== id; });
+  saveAll(true);
+  renderSolicitacoesTab();
+  showToast('Solicitação removida.');
+}
+
+// Inicia um orçamento novo a partir da solicitação — tira ela da fila na
+// hora (por escolha explícita: a construção do orçamento é o próprio
+// "cumprimento" do lembrete, não precisa esperar o orçamento ser salvo).
+function construirOrcamentoDeSolicitacao(id) {
+  var sol = (DB.solicitacoesOrc||[]).find(function(s){return s.id===id;});
+  if (!sol) return;
+  if (!confirm('Iniciar um novo orçamento para "' + sol.cliente + '"?\n\nEla sairá da fila de pendentes agora.')) return;
+  sol.status = 'convertido';
+  sol.convertidoEm = new Date().toISOString();
+  sol._updatedAt = new Date().toISOString();
+  saveAll(true);
+  renderSolicitacoesTab();
+  goToTab('tab-orc');
+  setTimeout(function() {
+    clearOrc(true);
+    if (g('c-nome'))   g('c-nome').value   = sol.cliente;
+    if (g('c-contato'))g('c-contato').value= sol.contato || '';
+    if (g('o-obs') && sol.desc) g('o-obs').value = 'Solicitação original (' + (sol.origem||'') + '): ' + sol.desc;
+    showToast('📋 Orçamento iniciado a partir da solicitação de ' + sol.cliente + '!');
+  }, 150);
+}
+
+function renderSolicitacoesTab() {
+  var lista = DB.solicitacoesOrc || [];
+  var pendentes = lista.filter(function(s){return s.status==='pendente';})
+    .sort(function(a,b){ return new Date(a.dataRecebido) - new Date(b.dataRecebido); });
+  var convertidas = lista.filter(function(s){return s.status==='convertido';})
+    .sort(function(a,b){ return new Date(b.convertidoEm||b._updatedAt||0) - new Date(a.convertidoEm||a._updatedAt||0); })
+    .slice(0, 12);
+
+  var kpisEl = g('sol-kpis');
+  if (kpisEl) {
+    kpisEl.innerHTML = [
+      { icon:'🗒️', val:pendentes.length,   lbl:'Pendentes',   cls: pendentes.length>0 ? 'orange' : 'blue' },
+      { icon:'✅', val:convertidas.length, lbl:'Convertidas (recentes)', cls:'green' },
+    ].map(function(k) {
+      return '<div class="d-kpi ' + k.cls + '"><div class="d-kpi-icon">' + k.icon + '</div><div class="d-kpi-val">' + k.val + '</div><div class="d-kpi-lbl">' + k.lbl + '</div></div>';
+    }).join('');
+  }
+
+  var origemInfo = {
+    whatsapp: { icon:'💬', label:'WhatsApp',     cor:'#22C55E' },
+    email:    { icon:'📧', label:'E-mail',        cor:'#3B82F6' },
+    visita:   { icon:'🚗', label:'Visita/Campo',  cor:'#F59E0B' },
+    outro:    { icon:'📌', label:'Outro',          cor:'#94A3B8' },
+  };
+
+  var board = g('sol-board');
+  if (board) {
+    if (!pendentes.length) {
+      board.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">Nenhuma solicitação pendente. 🎉</div>';
+    } else {
+      board.innerHTML = pendentes.map(function(s, idx) {
+        var oi = origemInfo[s.origem] || origemInfo.outro;
+        var dias = Math.round((Date.now() - new Date(s.dataRecebido)) / 86400000);
+        var qtdAnexos = (s.anexos||[]).length;
+        var rot = (idx % 5) - 2; // leve rotação alternada, efeito post-it
+        return '<div style="background:#FEF9C3;border:1px solid #FDE68A;border-radius:10px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.08);transform:rotate(' + rot + 'deg)">'
+          + '<div style="display:flex;justify-content:space-between;align-items:start;gap:6px;margin-bottom:8px">'
+          + '<div style="font-weight:800;font-size:14px;color:#78350F">' + (s.cliente||'—') + '</div>'
+          + '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:' + oi.cor + '22;color:' + oi.cor + ';font-weight:700;white-space:nowrap">' + oi.icon + ' ' + oi.label + '</span>'
+          + '</div>'
+          + (s.contato ? '<div style="font-size:11px;color:#92400E;margin-bottom:6px">📞 ' + s.contato + '</div>' : '')
+          + '<div style="font-size:12px;color:#451A03;margin-bottom:8px;white-space:pre-wrap;max-height:80px;overflow:auto">' + (s.desc ? s.desc.replace(/</g,'&lt;') : '<em style="color:#92400E">Sem anotações</em>') + '</div>'
+          + (qtdAnexos ? '<div style="font-size:11px;color:#92400E;margin-bottom:6px">📎 ' + qtdAnexos + ' anexo(s)</div>' : '')
+          + '<div style="font-size:10px;color:' + (dias>=3?'#B91C1C':'#92400E') + ';font-weight:' + (dias>=3?'700':'400') + ';margin-bottom:10px">Recebido há ' + dias + ' dia(s)' + (dias>=3?' ⚠️':'') + '</div>'
+          + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
+          + '<button class="btn btn-primary btn-xs" onclick="construirOrcamentoDeSolicitacao(\'' + s.id + '\')">🔧 Construir Orçamento</button>'
+          + '<button class="btn btn-ghost btn-xs" onclick="abrirModalSolicitacao(\'' + s.id + '\')">✏️</button>'
+          + '<button class="btn btn-danger btn-xs" onclick="excluirSolicitacao(\'' + s.id + '\')">×</button>'
+          + '</div>'
+          + '</div>';
+      }).join('');
+    }
+  }
+
+  var boardConv = g('sol-board-convertidas');
+  if (boardConv) {
+    boardConv.innerHTML = convertidas.length
+      ? convertidas.map(function(s) {
+          return '<div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px;opacity:.7;font-size:11px">'
+            + '<div style="font-weight:700">' + (s.cliente||'—') + '</div>'
+            + '<div style="color:var(--muted)">✅ convertido em ' + new Date(s.convertidoEm||s._updatedAt).toLocaleDateString('pt-BR') + '</div>'
+            + '</div>';
+        }).join('')
+      : '<div style="grid-column:1/-1;color:var(--muted);font-size:12px">Nenhuma ainda.</div>';
+  }
+}
+
 // ── APROVAÇÃO INTERNA DE ORÇAMENTOS ─────────────────────────────────────────
 // Mesmo padrão usado nas RC's: orçamento em 'aguardando' só pode ser
 // aprovado/reprovado por quem tem perfil admin ou gerente. Aprovado vira
@@ -23972,6 +24251,7 @@ function garantirIDs() {
   (DB.contasReceber||[]).forEach(function(r,i) { if (!r.id) r.id = 'rec-'+ (now+i); });
   (DB.requisicoes||[]).forEach(function(r,i)   { if (!r.id) r.id = 'rc-' + (now+i); });
   (DB.orcamentos||[]).forEach(function(r,i)    { if (!r.id) r.id = 'orc-'+ (now+i); });
+  (DB.solicitacoesOrc||[]).forEach(function(r,i){ if (!r.id) r.id = 'solreq-'+ (now+i); });
 }
 
 // Call on boot
@@ -28084,6 +28364,18 @@ function buildAllAlerts() {
     var dias = Math.round((agora - new Date(o.dataLiberado)) / 86400000);
     alertas.push({icon:'📧', titulo:'Envio não confirmado: '+o.num,
       desc:(o.cliNome||'Sem cliente')+' — liberado há '+dias+' dia(s), ainda não enviado', link:'tab-orcamentos'});
+  });
+
+  // Solicitações de orçamento pendentes há mais de 2 dias — lembrete pra
+  // não deixar a solicitação do cliente se perder antes de virar orçamento.
+  (DB.solicitacoesOrc||[]).filter(function(s){
+    return s.status === 'pendente' && s.dataRecebido;
+  }).forEach(function(s){
+    var dias = Math.round((agora - new Date(s.dataRecebido)) / 86400000);
+    if (dias >= 2) {
+      alertas.push({icon:'🗒️', titulo:'Solicitação pendente: '+(s.cliente||'—'),
+        desc:'Aguardando construção do orçamento há '+dias+' dia(s)', link:'tab-solicitacoes'});
+    }
   });
 
   return alertas;
