@@ -8980,7 +8980,7 @@ function mergeArrayByKey(localArr, remoteArr, keyField) {
   return order.map(function(k){ return merged[k]; }).filter(Boolean);
 }
 
-function applyLoadedData(save) {
+function applyLoadedData(save, skipOrcData) {
   // Restore usuarios from cloud — mescla por 'login', mantendo a versão
   // MAIS RECENTE de cada usuário (por _updatedAt), não simplesmente a local.
   // ANTES, bastava o login já existir localmente para a versão da nuvem
@@ -9103,38 +9103,40 @@ function applyLoadedData(save) {
   DB.planoContas = mergeArrayByKey(DB.planoContas, _remotePlano, 'cod');
   if (!DB.planoContas.length) DB.planoContas = getPlanoContasPadrao();
 
-  const d = save.orcData || {};
+  if (!skipOrcData) {
+    const d = save.orcData || {};
 
-  // Restore simple fields
-  ['o-num','o-data','o-resp','o-status','o-tipo','o-prazo','o-pgto','o-obs',
-   'c-nome','c-cnpj','c-contato','c-tel','c-email','c-cidade',
-   'g-ind-pct','g-tax-iss','g-tax-icms','g-tax-obs'].forEach(id => {
-    const el = g(id); if (el && d[id] !== undefined) el.value = d[id];
-  });
+    // Restore simple fields
+    ['o-num','o-data','o-resp','o-status','o-tipo','o-prazo','o-pgto','o-obs',
+     'c-nome','c-cnpj','c-contato','c-tel','c-email','c-cidade',
+     'g-ind-pct','g-tax-iss','g-tax-icms','g-tax-obs'].forEach(id => {
+      const el = g(id); if (el && d[id] !== undefined) el.value = d[id];
+    });
 
-  // Restore items
-  if (d._orcItems) {
-    try {
-      const loaded = JSON.parse(d._orcItems) || [];
-      orcItems = [];
-      orcItemCount = parseInt(d._orcItemCount) || 0;
-      itemRowCounts = {};
-      const lista = g('itens-orc-lista');
-      if (lista) lista.innerHTML = '';
-      if (g('itens-empty-msg')) g('itens-empty-msg').style.display = loaded.length ? 'none' : '';
-      loaded.forEach(item => {
-        orcItems.push(item);
-        renderItemCard(item, false);
-        // renderItemCard already renders table rows — don't call addItemRow again
-        calcItemTotals(item.id);
-      });
-      if (!loaded.length) addItemOrc();
-    } catch(e) { console.warn('Failed to restore orcItems:', e); addItemOrc(); }
-  } else {
-    addItemOrc();
+    // Restore items
+    if (d._orcItems) {
+      try {
+        const loaded = JSON.parse(d._orcItems) || [];
+        orcItems = [];
+        orcItemCount = parseInt(d._orcItemCount) || 0;
+        itemRowCounts = {};
+        const lista = g('itens-orc-lista');
+        if (lista) lista.innerHTML = '';
+        if (g('itens-empty-msg')) g('itens-empty-msg').style.display = loaded.length ? 'none' : '';
+        loaded.forEach(item => {
+          orcItems.push(item);
+          renderItemCard(item, false);
+          // renderItemCard already renders table rows — don't call addItemRow again
+          calcItemTotals(item.id);
+        });
+        if (!loaded.length) addItemOrc();
+      } catch(e) { console.warn('Failed to restore orcItems:', e); addItemOrc(); }
+    } else {
+      addItemOrc();
+    }
+
+    if (d._orcFotos) { try { orcFotos = JSON.parse(d._orcFotos)||[]; if(typeof renderOrcFotos==='function') renderOrcFotos(); } catch(e){} }
   }
-
-  if (d._orcFotos) { try { orcFotos = JSON.parse(d._orcFotos)||[]; if(typeof renderOrcFotos==='function') renderOrcFotos(); } catch(e){} }
 
   rebuildSelects();
   recalcAllItems();
@@ -16871,7 +16873,7 @@ async function cloudPush(manual, _retryCount) {
         if (remoteRecord && !remoteRecord._init &&
             remoteRecord._cloudPushedAt !== cloudLastSaved) {
           if (typeof syncLog === 'function') syncLog('🔍 [DIAG] cloudPush pull-before-push: aplicando merge (remoteAt=' + remoteRecord._cloudPushedAt + ' cloudLastSaved=' + cloudLastSaved + ')');
-          applyLoadedData(remoteRecord);
+          applyLoadedData(remoteRecord, true);
           cloudLastSaved = remoteRecord._cloudPushedAt || cloudLastSaved;
         }
       }
@@ -16962,11 +16964,17 @@ async function cloudPull(manual) {
     if (hasUnsavedOrc() && orcAtual && remoteOrcNum !== orcAtual) {
       var savedOrcData = record.orcData;
       record.orcData = null;
-      applyLoadedData(record);
+      applyLoadedData(record, true);
       record.orcData = savedOrcData;
       if (manual) showToast('🔄 Dados sincronizados! Orçamento em edição foi preservado.');
     } else {
-      applyLoadedData(record);
+      // manual=true (clique explícito de "Sincronizar agora" após o boot)
+      // nunca deve restaurar o formulário do orçamento — mesmo sem edição
+      // pendente, o que está na tela pode ter sido aberto deliberadamente
+      // (ex: abrirOrcamento) e não deve ser substituído por um retrato
+      // antigo/não relacionado guardado em orcData. Só no boot (manual=
+      // false) faz sentido restaurar um rascunho interrompido.
+      applyLoadedData(record, manual);
       if (manual) showToast('✅ Sincronização concluída com sucesso!');
     }
     _cloudDirty = false;
@@ -17194,7 +17202,7 @@ async function cloudPollSilent() {
       // Aplica SOMENTE os dados de DB (OS, financeiro, etc.) — preserva formulário
       var savedOrcData  = record.orcData;
       record.orcData    = null;  // temporariamente remove orcData do payload
-      applyLoadedData(record);
+      applyLoadedData(record, true);
       record.orcData    = savedOrcData;  // restaura para próximas chamadas
       // NÃO zera _cloudDirty aqui: se havia uma mudança local pendente (ex:
       // uma aprovação de orçamento que ainda está no debounce de 2s do
@@ -17204,8 +17212,13 @@ async function cloudPollSilent() {
       // na próxima vez que a nuvem fosse consultada de novo.
       showToast('🔄 Dados atualizados (orçamento atual preservado — tem edições não salvas)');
     } else {
+      // O poll de 30s NUNCA acontece no boot — é sempre em segundo plano
+      // durante uma sessão já em andamento. Por isso nunca deve tocar no
+      // formulário do orçamento, mesmo sem edição pendente (ex: orçamento
+      // recém-aberto pra consulta não deve ser substituído por um
+      // retrato antigo guardado em orcData).
       if (typeof syncLog === 'function') syncLog('🔍 [DIAG] Poll: aplicando dados remotos (ramo normal)');
-      applyLoadedData(record);
+      applyLoadedData(record, true);
     }
 
     // Re-render active tab
