@@ -19782,6 +19782,59 @@ window.addEventListener('beforeunload', function(e) {
   }
 });
 
+// ── PROTEÇÃO CONTRA PÁGINA RESTAURADA DO BFCACHE (aba "ressuscitada") ───────
+// Quando o Chrome fecha de forma inesperada (crash, força-fechar, queda de
+// acesso remoto) e depois oferece "restaurar páginas anteriores", ou quando
+// o usuário simplesmente volta para uma aba que ficou em segundo plano por
+// muito tempo, o navegador pode usar o bfcache (back-forward cache): a aba
+// NÃO recarrega do zero — ela retoma exatamente de onde parou, com todo o
+// JavaScript e os dados que já estavam na memória, SEM buscar a versão mais
+// nova do servidor. Isso significa: código antigo (com bugs já corrigidos)
+// e dados antigos continuam rodando silenciosamente, podendo empurrar de
+// volta pra nuvem um estado desatualizado (ex: um orçamento aprovado
+// revertendo). O evento 'pageshow' com persisted=true detecta exatamente
+// esse caso — força um recarregamento completo pra garantir código e dados
+// sempre atuais.
+window.addEventListener('pageshow', function(event) {
+  if (event.persisted) {
+    console.warn('[Lumarc] Página restaurada do bfcache — forçando recarregamento completo para evitar código/dados desatualizados.');
+    location.reload();
+  }
+});
+
+// ── DETECÇÃO DE MÚLTIPLAS ABAS ABERTAS AO MESMO TEMPO ───────────────────────
+// Cada aba roda sua própria sincronização automática (a cada 30s), de forma
+// totalmente independente. Duas abas do mesmo sistema abertas ao mesmo
+// tempo (ex: uma esquecida em segundo plano + uma nova aberta) competem
+// pra sincronizar, aumentando o risco de uma delas empurrar um estado
+// desatualizado por cima do que a outra acabou de salvar. Avisa o usuário
+// quando detecta isso, pra fechar as abas extras.
+(function() {
+  if (typeof BroadcastChannel === 'undefined') return; // navegador sem suporte — ignora, sem quebrar nada
+  var _canalAbas = new BroadcastChannel('lumarc_deteccao_abas');
+  var _outrasAbasVistas = {};
+  var _jaAvisou = false;
+
+  _canalAbas.onmessage = function(ev) {
+    var d = ev.data || {};
+    if (d.tipo === 'ping') {
+      _canalAbas.postMessage({ tipo: 'pong', id: (typeof SESSION_ID !== 'undefined' ? SESSION_ID : 'sem-id') });
+    } else if (d.tipo === 'pong' && d.id !== (typeof SESSION_ID !== 'undefined' ? SESSION_ID : 'sem-id')) {
+      _outrasAbasVistas[d.id] = Date.now();
+      if (!_jaAvisou) {
+        _jaAvisou = true;
+        setTimeout(function() {
+          if (typeof showToast === 'function') showToast('⚠️ Você tem mais de uma aba/janela do Lumarc aberta ao mesmo tempo. Isso pode causar conflitos de sincronização — feche as outras e deixe só uma.', 'warn');
+          if (typeof syncLog === 'function') syncLog('⚠️ Múltiplas abas do sistema detectadas abertas ao mesmo tempo.');
+        }, 1000);
+      }
+    }
+  };
+
+  setTimeout(function() { _canalAbas.postMessage({ tipo: 'ping' }); }, 2500);
+  setInterval(function() { _canalAbas.postMessage({ tipo: 'ping' }); }, 20000);
+})();
+
 // Rascunho automático: enquanto há edição não salva, grava um snapshot bruto
 // do formulário (não mexe em DB.orcamentos, é só uma rede de segurança à
 // parte) a cada 15s. Se o app fechar antes do "Salvar" ser clicado, o
