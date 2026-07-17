@@ -18424,19 +18424,49 @@ function limparDuplicatasFolha() {
   function _bootSeguro(fn, nome) {
     try { fn(); } catch(e) { console.error('[Boot] Falha em ' + nome + ' (ignorada, continuando boot):', e); }
   }
-  _bootSeguro(backfillUpdatedAtOrcamentos, 'backfillUpdatedAtOrcamentos');
-  _bootSeguro(migrarFotosParaBinSeparado, 'migrarFotosParaBinSeparado');
-  _bootSeguro(migrarStatusOrcLegado, 'migrarStatusOrcLegado');
+
+  // ── PROTEÇÃO CONTRA ROTINA DE BOOT GRAVANDO DADOS ANTIGOS ───────────────
+  // Descoberta crítica: numa máquina com dados desatualizados (ex: um
+  // computador que não é usado há alguns dias), qualquer uma das rotinas de
+  // correção automática abaixo (dedup, backfill, migração de fotos, geração
+  // de folha, etc.) podia encontrar "algo para corrigir" usando o estado
+  // LOCAL ainda não sincronizado, e chamar saveAll()/empurrar isso pra
+  // nuvem ANTES do pull inicial da nuvem terminar de mesclar os dados mais
+  // recentes (ex: uma aprovação de orçamento feita em OUTRO computador).
+  // Resultado: a máquina desatualizada "vencia a corrida" e sobrescrevia
+  // a nuvem com o estado antigo — exatamente o que causou orçamentos
+  // aprovados voltarem a "aguardando" ao fazer login num computador que
+  // não tinha sido usado recentemente.
+  //
+  // Correção: dispara o pull da nuvem PRIMEIRO (a rede começa a responder
+  // o quanto antes), e todas as rotinas que podem gravar dados esperam essa
+  // busca terminar antes de rodar — com um teto de ~6s pra máquinas offline
+  // não ficarem travadas esperando pra sempre.
+  _bootSeguro(initCloud, 'initCloud');
+
+  function _bootSeguroAposCloud(fn, nome, tentativasRestantes) {
+    if (tentativasRestantes === undefined) tentativasRestantes = 20; // ~6s (20 x 300ms)
+    if (window._cloudPullDone || tentativasRestantes <= 0) {
+      _bootSeguro(fn, nome);
+    } else {
+      setTimeout(function() { _bootSeguroAposCloud(fn, nome, tentativasRestantes - 1); }, 300);
+    }
+  }
+
+  _bootSeguroAposCloud(backfillUpdatedAtOrcamentos, 'backfillUpdatedAtOrcamentos');
+  _bootSeguroAposCloud(migrarFotosParaBinSeparado, 'migrarFotosParaBinSeparado');
+  _bootSeguroAposCloud(migrarStatusOrcLegado, 'migrarStatusOrcLegado');
   _bootSeguro(_iniciarRascunhoAutoSave, '_iniciarRascunhoAutoSave');
   _bootSeguro(verificarRascunhoPendente, 'verificarRascunhoPendente');
   _bootSeguro(garantirIDs, 'garantirIDs');
-  _bootSeguro(limparDuplicatasCadastros, 'limparDuplicatasCadastros');
-  _bootSeguro(limparDuplicatasFinanceiras, 'limparDuplicatasFinanceiras');
-  _bootSeguro(limparDuplicatasFolha, 'limparDuplicatasFolha');
-  _bootSeguro(garantirContasDepartamentoPessoal, 'garantirContasDepartamentoPessoal');
-  _bootSeguro(corrigirTipoOrcLegado, 'corrigirTipoOrcLegado');
-  _bootSeguro(corrigirDescricaoQuinzenaLegado, 'corrigirDescricaoQuinzenaLegado');
+  _bootSeguroAposCloud(limparDuplicatasCadastros, 'limparDuplicatasCadastros');
+  _bootSeguroAposCloud(limparDuplicatasFinanceiras, 'limparDuplicatasFinanceiras');
+  _bootSeguroAposCloud(limparDuplicatasFolha, 'limparDuplicatasFolha');
+  _bootSeguroAposCloud(garantirContasDepartamentoPessoal, 'garantirContasDepartamentoPessoal');
+  _bootSeguroAposCloud(corrigirTipoOrcLegado, 'corrigirTipoOrcLegado');
+  _bootSeguroAposCloud(corrigirDescricaoQuinzenaLegado, 'corrigirDescricaoQuinzenaLegado');
   // Gera contas de folha (salários + encargos) a cada 3 meses, não a cada boot
+  _bootSeguroAposCloud(function() {
   try {
     // CORREÇÃO v3: folha agora gera para TODOS os funcionários (diretos E
     // indiretos), não só os diretos. Força uma regeneração única para que
@@ -18476,7 +18506,7 @@ function limparDuplicatasFolha() {
       localStorage.setItem('lumarc_folha_ultima_geracao', hojeStr);
     }
   } catch(e) { console.warn('[Folha] Erro ao gerar contas automáticas:', e); }
-  _bootSeguro(initCloud, 'initCloud');
+  }, 'gerarContasFolhaEDeduplicacao');
   _bootSeguro(ensureDefaultAdmin, 'ensureDefaultAdmin');
   _bootSeguro(updateTopbarRCBadge, 'updateTopbarRCBadge');
   _bootSeguro(updateTopbarOrcBadge, 'updateTopbarOrcBadge');
