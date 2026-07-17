@@ -20584,9 +20584,8 @@ function renderOrcamentosTab() {
         + '</div>'
         + '<div class="orc-card-actions" onclick="event.stopPropagation()">'
         + '<span class="orc-status-badge ' + stCls + '">' + stLbl + '</span>'
-        + '<select onchange="mudarStatusOrc(\'' + orc.id + '\',this.value);this.value=\'\'" style="font-size:10px;padding:2px 4px;border-radius:4px;border:1px solid var(--border)">'
-        + '<option value="">▾ Status</option>'
-        + Object.keys(ORC_STATUS_LABELS).map(function(k) { return '<option value="' + k + '">' + ORC_STATUS_LABELS[k] + '</option>'; }).join('')
+        + '<select onchange="mudarStatusOrc(\'' + orc.id + '\',this.value)" style="font-size:10px;padding:2px 4px;border-radius:4px;border:1px solid var(--border)">'
+        + Object.keys(ORC_STATUS_LABELS).map(function(k) { return '<option value="' + k + '"' + (k === orc.status ? ' selected' : '') + '>' + ORC_STATUS_LABELS[k] + '</option>'; }).join('')
         + '</select>'
         + '<button class="btn btn-primary btn-xs" onclick="abrirOrcamento(\'' + orc.id + '\')">📂 Abrir</button>'
         + '<button class="btn btn-ghost btn-xs" onclick="duplicarOrcamento(\'' + orc.id + '\')" title="Duplicar este orçamento">⧉</button>'
