@@ -16682,27 +16682,69 @@ function migrarFotosParaBinSeparado() {
   localStorage.setItem('lumarc_fotos_migradas_v1', '1');
 }
 
-// Migração única: orçamentos gravados ANTES da correção do campo
-// _updatedAt (ISO) só têm o campo antigo em pt-BR, que é ambíguo demais
-// pra confiar na comparação do merge (ver comentário em mergeArrayByKey).
-// Como não dá pra recuperar com segurança a data real desses registros
-// antigos a partir do formato ambíguo, preenche com o momento desta
-// migração — a partir de agora, qualquer edição real volta a atualizar
-// esse campo corretamente. Sem essa correção, o registro legado ficaria
-// preso "sem data" (época zero) para sempre, o que é seguro mas
-// desnecessariamente conservador nas comparações futuras.
+// Lê uma data no formato "dd/mm/yyyy, hh:mm:ss" (usado no histórico e em
+// updatedAt/savedAt) de forma confiável — SEM usar Date.parse() nativo,
+// que é ambíguo pra esse formato (interpreta dia<=12 como mês, ver
+// comentário em mergeArrayByKey). Retorna null se não conseguir ler.
+function _parseDataBR(str) {
+  if (!str || typeof str !== 'string') return null;
+  var m = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:,?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if (!m) return null;
+  var dia = parseInt(m[1], 10), mes = parseInt(m[2], 10) - 1, ano = parseInt(m[3], 10);
+  var hora = parseInt(m[4] || '0', 10), min = parseInt(m[5] || '0', 10), seg = parseInt(m[6] || '0', 10);
+  var d = new Date(ano, mes, dia, hora, min, seg);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// Migração de correção do campo _updatedAt (ISO) dos orçamentos.
+//
+// v1 (versão anterior, COM FALHA): carimbava "agora" em qualquer orçamento
+// sem _updatedAt — mas isso cria uma data FALSA e artificialmente recente
+// numa máquina que só tem uma cópia antiga/desatualizada do orçamento. Se
+// essa cópia antiga (com data falsa "recente") chegasse a sincronizar
+// depois de uma aprovação genuína (com data real, porém mais antiga que a
+// falsa), ela vencia a comparação por engano — apagando a aprovação
+// inteira, histórico incluído. Foi exatamente isso que causou orçamentos
+// aprovados voltarem sozinhos pra fila de aprovação.
+//
+// v2 (esta versão, corrigida): em vez de carimbar "agora", calcula a data
+// real a partir do ÚLTIMO EVENTO do próprio histórico do orçamento — que
+// reflete quando ele de fato foi alterado pela última vez. Além de
+// preencher o que estava faltando, também REPARA registros já
+// contaminados pela v1: se o _updatedAt atual está suspeitosamente mais
+// recente do que o histórico sugere (mais de 60s de diferença, sinal de
+// carimbo artificial sem ação real correspondente), recalcula a partir do
+// histórico em vez de confiar nele.
 function backfillUpdatedAtOrcamentos() {
-  if (localStorage.getItem('lumarc_backfill_updatedat_v1_done')) return;
+  if (localStorage.getItem('lumarc_backfill_updatedat_v2_done')) return;
   var corrigidos = 0;
-  var agora = new Date().toISOString();
   (DB.orcamentos || []).forEach(function(o) {
-    if (!o._updatedAt) { o._updatedAt = agora; corrigidos++; }
+    var dataHistorico = null;
+    if (o.historico && o.historico.length) {
+      dataHistorico = _parseDataBR(o.historico[o.historico.length - 1].data);
+    }
+    if (!dataHistorico) dataHistorico = _parseDataBR(o.savedAt) || _parseDataBR(o.updatedAt);
+    if (!dataHistorico) return; // sem nenhuma data confiável pra calcular — deixa como está (conta como "muito antigo" nas comparações, seguro)
+
+    var precisaCorrigir = false;
+    if (!o._updatedAt) {
+      precisaCorrigir = true;
+    } else {
+      var atual = new Date(o._updatedAt);
+      if (!isNaN(atual.getTime()) && (atual.getTime() - dataHistorico.getTime()) > 60000) {
+        precisaCorrigir = true; // _updatedAt suspeito — mais "novo" do que o histórico sustenta
+      }
+    }
+    if (precisaCorrigir) {
+      o._updatedAt = dataHistorico.toISOString();
+      corrigidos++;
+    }
   });
   if (corrigidos > 0) {
-    console.log('[Backfill _updatedAt] ' + corrigidos + ' orçamento(s) corrigido(s).');
+    console.log('[Backfill _updatedAt v2] ' + corrigidos + ' orçamento(s) corrigido(s) com data real do histórico.');
     saveAll(true);
   }
-  localStorage.setItem('lumarc_backfill_updatedat_v1_done', '1');
+  localStorage.setItem('lumarc_backfill_updatedat_v2_done', '1');
 }
 
 // ── IDENTIFICADOR ÚNICO DE SESSÃO/MÁQUINA ───────────────────────────────
