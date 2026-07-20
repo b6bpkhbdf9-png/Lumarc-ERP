@@ -12286,7 +12286,7 @@ async function printOS(idx, semValores) {
   </div>
   <div class="desc-box">${os.desc}</div>
   ${os.obsTec ? `<div class="sec">Instruções / Notas Técnicas</div><div class="desc-box" style="border-color:#FCD34D;background:#FFFBEB;padding:10px 12px"><ol style="margin:0;padding-left:18px;line-height:1.7">${os.obsTec.split('\n').filter(function(l){return l.trim()!=='';}).map(function(l){return '<li>'+l+'</li>';}).join('')}</ol></div>` : ''}
-  ${(os.fotos||[]).length > 0 ? `<div class="sec">Fotos de Referência</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0">${(os.fotos||[]).map(f=>`<img src="${fotoStoreObterSync(f)}" style="width:100%;border-radius:4px;border:1px solid #E2E8F0;object-fit:cover;aspect-ratio:1">`).join('')}</div>` : ''}
+  ${(os.fotos||[]).length > 0 ? `<div class="sec">Fotos de Referência</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0">${(os.fotos||[]).map(f=>htmlFotoDoc(f,'width:100%;border-radius:4px;border:1px solid #E2E8F0;object-fit:cover;aspect-ratio:1')).join('')}</div>` : ''}
 
   ${semValores ? '' : `<div class="sec">Valores</div>
   <div class="fin-box">
@@ -15729,7 +15729,7 @@ async function exportPropostaComercial() {
       </table>
       ${(item.fotos && item.fotos.length) ? `
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:8px;padding:8px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:0 0 6px 6px">
-        ${item.fotos.map(f=>`<img src="${fotoStoreObterSync(f)}" style="width:100%;border-radius:4px;border:1px solid #E2E8F0;object-fit:contain;background:#fff;max-height:160px">`).join('')}
+        ${item.fotos.map(f=>htmlFotoDoc(f,'width:100%;border-radius:4px;border:1px solid #E2E8F0;object-fit:contain;background:#fff;max-height:160px')).join('')}
       </div>` : ''}
     </div>`;
   }).join('');
@@ -15916,7 +15916,7 @@ async function exportPDF() {
     });
 
     const fotosHTML = (item.fotos||[]).length
-      ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:8px 0">${(item.fotos||[]).map(f=>`<img src="${fotoStoreObterSync(f)}" style="width:100%;max-height:160px;border-radius:4px;border:1px solid #E2E8F0;object-fit:contain;background:#fff">`).join('')}</div>` : '';
+      ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:8px 0">${(item.fotos||[]).map(f=>htmlFotoDoc(f,'width:100%;max-height:160px;border-radius:4px;border:1px solid #E2E8F0;object-fit:contain;background:#fff')).join('')}</div>` : '';
 
     return `
     <div style="border:1px solid #E2E8F0;border-radius:8px;margin-bottom:16px;overflow:hidden">
@@ -16522,6 +16522,18 @@ function fotoStoreObterSync(ref) {
   return '';
 }
 
+// Versão pra documentos gerados (proposta, PDF, impressão de OS): se a foto
+// não for encontrada, mostra um aviso visível em vez de deixar sumir sem
+// explicação — assim fica claro que falta algo, em vez de parecer que o
+// item nunca teve foto nenhuma.
+function htmlFotoDoc(f, styleCss) {
+  var dataUrl = fotoStoreObterSync(f);
+  if (dataUrl) {
+    return '<img src="' + dataUrl + '" style="' + styleCss + '">';
+  }
+  return '<div style="' + styleCss + ';display:flex;align-items:center;justify-content:center;background:#F1F5F9;color:#94A3B8;font-size:10px;text-align:center;padding:4px;box-sizing:border-box">📷 Foto indisponível' + (f && f.name ? '<br>' + f.name : '') + '</div>';
+}
+
 function _puxarFotosBin(forcar) {
   if (_fotosBinCarregado && !forcar) return Promise.resolve();
   if (_fotosPullPromise && !forcar) return _fotosPullPromise;
@@ -16546,7 +16558,7 @@ function _puxarFotosBin(forcar) {
 // estão resolvidas em _fotosCache — usado antes de montar documentos/PDF,
 // onde a montagem do HTML é síncrona e não pode esperar foto por foto.
 async function garantirFotosCarregadas() {
-  await _puxarFotosBin();
+  await _puxarFotosBin(true); // força busca fresca — crítico ter as fotos mais atuais na geração de documentos
 }
 
 function _agendarPushFotos() {
