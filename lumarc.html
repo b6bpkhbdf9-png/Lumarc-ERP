@@ -16499,7 +16499,14 @@ function fotoStoreObter(ref, callback) {
   if (ref.id && _fotosCache[ref.id]) { callback(_fotosCache[ref.id]); return; }
   if (!ref.id) { callback(null); return; }
   _puxarFotosBin().then(function() {
-    callback(_fotosCache[ref.id] || null);
+    if (_fotosCache[ref.id]) { callback(_fotosCache[ref.id]); return; }
+    // Não achou na primeira busca — tenta de novo com uma busca FRESCA
+    // (ignora o cache de "já carreguei"), caso a foto tenha sido enviada
+    // por esta mesma sessão momentos atrás (push ainda em andamento) ou
+    // por outro computador depois da nossa última consulta.
+    _puxarFotosBin(true).then(function() {
+      callback(_fotosCache[ref.id] || null);
+    });
   });
 }
 
@@ -16515,9 +16522,9 @@ function fotoStoreObterSync(ref) {
   return '';
 }
 
-function _puxarFotosBin() {
-  if (_fotosBinCarregado) return Promise.resolve();
-  if (_fotosPullPromise) return _fotosPullPromise;
+function _puxarFotosBin(forcar) {
+  if (_fotosBinCarregado && !forcar) return Promise.resolve();
+  if (_fotosPullPromise && !forcar) return _fotosPullPromise;
   if (!cloudCfg.apiKey) return Promise.resolve();
   _fotosPullPromise = fetch(JSONBIN_BASE + '/b/' + JSONBIN_FOTOS_BIN_ID + '/latest', {
     headers: { 'X-Master-Key': cloudCfg.apiKey }
@@ -16612,12 +16619,24 @@ function hidratarFotosLazy(root) {
   root = root || document;
   var imgs = root.querySelectorAll('img[data-foto-id]:not([data-hidratada])');
   imgs.forEach(function(img) {
-    img.setAttribute('data-hidratada', '1');
     var id = img.getAttribute('data-foto-id');
-    if (!id) return;
-    fotoStoreObter({ id: id }, function(dataUrl) {
-      if (dataUrl) img.src = dataUrl;
-    });
+    if (!id) { img.setAttribute('data-hidratada', '1'); return; }
+    var tentativas = 0;
+    function tentar() {
+      fotoStoreObter({ id: id }, function(dataUrl) {
+        if (dataUrl) {
+          img.src = dataUrl;
+          img.setAttribute('data-hidratada', '1');
+        } else if (tentativas < 3) {
+          tentativas++;
+          setTimeout(tentar, 2000);
+        } else {
+          img.setAttribute('data-hidratada', '1'); // desiste — evita tentar pra sempre
+          img.alt = 'Foto indisponível';
+        }
+      });
+    }
+    tentar();
   });
 }
 
@@ -19846,6 +19865,13 @@ function salvarOrcamento() {
   }
 
   saveAll(true);
+  // Se há fotos recém-adicionadas ainda no atraso de envio, dispara agora
+  // — salvar é um "ponto de confirmação" natural, reduz a janela de risco
+  // de fechar a aba antes da foto realmente sair pra nuvem.
+  if (typeof _fotosPendentes !== 'undefined' && Object.keys(_fotosPendentes).length > 0) {
+    clearTimeout(_fotosPushTimer);
+    _pushFotosBin();
+  }
   if (typeof renderOrcamentosTab === 'function') renderOrcamentosTab();
   localStorage.removeItem('lumarc_rascunho_autosave');
 }
@@ -19879,7 +19905,8 @@ function hasUnsavedOrc() {
 // disparava nenhum aviso — o que estava só na tela e ainda não tinha sido
 // salvo com o botão "Salvar" se perdia sem rastro. Isso cobre os dois casos:
 window.addEventListener('beforeunload', function(e) {
-  if (typeof hasUnsavedOrc === 'function' && hasUnsavedOrc()) {
+  var temFotoPendente = typeof _fotosPendentes !== 'undefined' && Object.keys(_fotosPendentes).length > 0;
+  if ((typeof hasUnsavedOrc === 'function' && hasUnsavedOrc()) || temFotoPendente) {
     e.preventDefault();
     e.returnValue = ''; // navegadores modernos ignoram o texto customizado, mas exigem isso pra mostrar o aviso nativo
     return '';
