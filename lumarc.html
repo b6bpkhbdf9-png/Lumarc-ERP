@@ -12290,8 +12290,8 @@ async function printOS(idx, semValores) {
 
   ${semValores ? '' : `<div class="sec">Valores</div>
   <div class="fin-box">
-    <div class="fin-item"><div class="fin-val">R$ ${(os.custo||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="fin-lbl">Custo Previsto</div></div>
-    <div class="fin-item"><div class="fin-val" style="color:#60A5FA">R$ ${(os.valor||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="fin-lbl">Valor de Venda</div></div>
+    <div class="fin-item"><div class="fin-val">R$ ${(os.custo||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div><div class="fin-lbl">Custo Previsto</div></div>
+    <div class="fin-item"><div class="fin-val" style="color:#60A5FA">R$ ${(os.valor||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div><div class="fin-lbl">Valor de Venda</div></div>
     <div class="fin-item"><div class="fin-val" style="color:${marg>10?'#6EE7B7':marg>0?'#FCD34D':'#FCA5A5'}">${marg.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}%</div><div class="fin-lbl">Margem Prevista</div></div>
   </div>`}
 
@@ -14465,8 +14465,8 @@ function printPedidoCompra(idx) {
     <tr>
       <td>${i+1}</td><td>${it.desc}</td><td>${it.un}</td>
       <td style="text-align:right">${it.qtd.toLocaleString('pt-BR',{maximumFractionDigits:3})}</td>
-      <td style="text-align:right">R$ ${it.pu.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-      <td style="text-align:right;font-weight:700">R$ ${(it.qtd*it.pu).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td style="text-align:right">R$ ${it.pu.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td style="text-align:right;font-weight:700">R$ ${(it.qtd*it.pu).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
     </tr>`).join('');
 
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
@@ -14533,7 +14533,7 @@ function printPedidoCompra(idx) {
     <tbody>${itensRows}</tbody>
     <tfoot class="tot-row"><tr>
       <td colspan="5" style="text-align:right">TOTAL DO PEDIDO</td>
-      <td style="text-align:right;font-size:14px">R$ ${(pc.total||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td style="text-align:right;font-size:14px">R$ ${(pc.total||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
     </tr></tfoot>
   </table>
 
@@ -29623,9 +29623,9 @@ function renderInssEmpTable() {
   if (!body) return;
   body.innerHTML = tabela.map(function(f,i){
     return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;font-size:11px;border-bottom:1px solid var(--border)">'
-      +'<div style="padding:6px 10px">R$ '+f.ate.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div>'
+      +'<div style="padding:6px 10px">R$ '+f.ate.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'</div>'
       +'<div style="padding:6px 10px">'+f.aliq+'%</div>'
-      +'<div style="padding:6px 10px">R$ '+f.ded.toLocaleString('pt-BR',{minimumFractionDigits:2})+'</div>'
+      +'<div style="padding:6px 10px">R$ '+f.ded.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'</div>'
       +'</div>';
   }).join('');
 }
