@@ -997,10 +997,10 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
     <div id="topbar-rc-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(245,158,11,.25);color:#FCD34D;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-rc')" title="Requisições aguardando aprovação">
       📝 <span id="topbar-rc-count">0</span> RC pendente(s)
     </div>
-    <div id="topbar-orc-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(245,158,11,.25);color:#FCD34D;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-orcamentos')" title="Orçamentos aguardando aprovação">
+    <div id="topbar-orc-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(245,158,11,.25);color:#FCD34D;font-size:11px;font-weight:700;cursor:pointer" onclick="irParaOrcamentosFiltrado('aguardando')" title="Orçamentos aguardando aprovação">
       📋 <span id="topbar-orc-count">0</span> orçamento(s) pendente(s)
     </div>
-    <div id="topbar-envio-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(34,197,94,.25);color:#86EFAC;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-orcamentos')" title="Orçamentos aguardando envio ao cliente">
+    <div id="topbar-envio-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(34,197,94,.25);color:#86EFAC;font-size:11px;font-weight:700;cursor:pointer" onclick="irParaOrcamentosFiltrado('liberado')" title="Orçamentos aguardando envio ao cliente">
       📧 <span id="topbar-envio-count">0</span> aguardando envio
     </div>
     <div id="topbar-sol-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(234,179,8,.25);color:#FDE68A;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-solicitacoes')" title="Solicitações de orçamento pendentes">
@@ -20376,6 +20376,17 @@ function renderSolicitacoesTab() {
 // 'liberado' (pronto pra enviar ao cliente, distinto de 'aprovado' que
 // significa que o CLIENTE aprovou a proposta). Reprovado volta pra
 // rascunho com o motivo registrado, pra quem criou poder corrigir e reenviar.
+// Navega pra aba "Meus Orçamentos" e já aplica o filtro de status
+// desejado — usado pelos badges do topbar, pra ir direto pra lista
+// filtrada em vez de precisar filtrar manualmente depois.
+function irParaOrcamentosFiltrado(status) {
+  goToTab('tab-orcamentos');
+  setTimeout(function() {
+    var sel = g('orc-list-status');
+    if (sel) { sel.value = status; renderOrcamentosTab(); }
+  }, 100);
+}
+
 function updateTopbarOrcBadge() {
   var pendentes = (DB.orcamentos || []).filter(function(o) { return o.status === 'aguardando'; });
   var badge = g('topbar-orc-badge');
