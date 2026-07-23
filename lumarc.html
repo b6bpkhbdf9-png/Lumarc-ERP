@@ -1000,6 +1000,9 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
     <div id="topbar-orc-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(245,158,11,.25);color:#FCD34D;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-orcamentos')" title="Orçamentos aguardando aprovação">
       📋 <span id="topbar-orc-count">0</span> orçamento(s) pendente(s)
     </div>
+    <div id="topbar-envio-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(34,197,94,.25);color:#86EFAC;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-orcamentos')" title="Orçamentos aguardando envio ao cliente">
+      📧 <span id="topbar-envio-count">0</span> aguardando envio
+    </div>
     <div id="topbar-sol-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(234,179,8,.25);color:#FDE68A;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-solicitacoes')" title="Solicitações de orçamento pendentes">
       🗒️ <span id="topbar-sol-count">0</span> solicitação(ões) pendente(s)
     </div>
@@ -17390,6 +17393,7 @@ async function cloudPollSilent() {
         updateTopbarAlerts && updateTopbarAlerts();
         updateTopbarRCBadge && updateTopbarRCBadge();
         updateTopbarOrcBadge && updateTopbarOrcBadge();
+        updateTopbarEnvioBadge && updateTopbarEnvioBadge();
         updateTopbarSolBadge && updateTopbarSolBadge();
 
   } catch(e) {
@@ -18583,6 +18587,7 @@ function limparDuplicatasFolha() {
   _bootSeguro(ensureDefaultAdmin, 'ensureDefaultAdmin');
   _bootSeguro(updateTopbarRCBadge, 'updateTopbarRCBadge');
   _bootSeguro(updateTopbarOrcBadge, 'updateTopbarOrcBadge');
+  _bootSeguro(updateTopbarEnvioBadge, 'updateTopbarEnvioBadge');
   _bootSeguro(updateTopbarSolBadge, 'updateTopbarSolBadge');
 }
 
@@ -20150,6 +20155,7 @@ function mudarStatusOrc(id, novoStatus) {
   saveAll(true);
   renderOrcamentosTab();
   updateTopbarOrcBadge();
+  updateTopbarEnvioBadge();
   showToast('Status atualizado: ' + ORC_STATUS_LABELS[novoStatus]);
 }
 
@@ -20385,6 +20391,23 @@ function updateTopbarOrcBadge() {
   }
 }
 
+// Badge de orçamentos aguardando ENVIO ao cliente ('liberado') — visível
+// pra TODO MUNDO, sem restrição de perfil, já que quem precisa agir é
+// normalmente quem criou o orçamento, não necessariamente admin/gerente.
+function updateTopbarEnvioBadge() {
+  var pendentes = (DB.orcamentos || []).filter(function(o) { return o.status === 'liberado'; });
+  var badge = g('topbar-envio-badge');
+  var count = g('topbar-envio-count');
+  if (badge) {
+    if (pendentes.length > 0) {
+      badge.style.display = 'flex';
+      if (count) count.textContent = pendentes.length;
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+}
+
 // Badge de solicitações de orçamento pendentes — visível pra TODO MUNDO
 // (sem restrição de perfil), diferente do badge de aprovação: qualquer
 // pessoa pode precisar ver que chegou uma solicitação nova e construir o
@@ -20421,6 +20444,7 @@ function aprovarOrcamentoRapido(id) {
   saveAll(true);
   renderOrcamentosTab();
   updateTopbarOrcBadge();
+  updateTopbarEnvioBadge();
   showToast('✅ Orçamento ' + orc.num + ' aprovado — liberado para envio!');
 }
 
@@ -20464,6 +20488,7 @@ function confirmarEnvioOrc() {
   closeModal('modal-confirmar-envio-orc');
   renderOrcamentosTab();
   updateTopbarOrcBadge();
+  updateTopbarEnvioBadge();
   showToast('📧 Envio confirmado — ' + orc.num + ' marcado como Enviado!');
 }
 
@@ -20484,6 +20509,7 @@ function reprovarOrcamentoRapidoDialog(id) {
   saveAll(true);
   renderOrcamentosTab();
   updateTopbarOrcBadge();
+  updateTopbarEnvioBadge();
   showToast('❌ Orçamento ' + orc.num + ' reprovado — voltou para rascunho.');
 }
 
@@ -20566,6 +20592,7 @@ function renderOrcamentosTab() {
   }
 
   updateTopbarOrcBadge();
+  updateTopbarEnvioBadge();
 
   // Filter
   var filtered = orcs.filter(function(orc) {
