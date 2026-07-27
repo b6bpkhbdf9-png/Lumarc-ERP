@@ -6561,12 +6561,17 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
       <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:6px;padding:14px">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Composição do custo calculada</div>
         <div id="mf-breakdown" style="font-size:12px;display:grid;grid-template-columns:1fr 1fr;gap:6px"></div>
+        <hr style="margin:10px 0;border:none;border-top:1px solid var(--border)">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;font-weight:700">
+          <div>Custo total/mês</div><div style="font-family:var(--mono);text-align:right" id="mf-custo-mes">R$ 0,00</div>
+          <div>Custo por hora</div><div style="font-family:var(--mono);text-align:right" id="mf-custo-hora">R$ 0,00</div>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-func')">Cancelar</button>
-      <button class="btn btn-danger btn-sm" id="mf-del-btn" onclick="deleteFuncionario()" style="display:none">🗑 Excluir</button>
-      <button class="btn btn-primary" onclick="saveFuncionario()">💾 Salvar</button>
+      <button class="btn btn-danger btn-sm" id="mf-del-btn" onclick="if(DB.editFuncIdx>=0){deleteFunc(DB.editFuncIdx);closeModal('modal-func');}" style="display:none">🗑 Excluir</button>
+      <button class="btn btn-primary" onclick="saveFunc()">💾 Salvar</button>
     </div>
   </div>
 </div>
@@ -9809,6 +9814,7 @@ document.addEventListener('keydown', function(e) {
 function openFuncModal(idx) {
   DB.editFuncIdx = idx !== undefined ? idx : -1;
   g('mf-title').textContent = idx !== undefined ? 'Editar Funcionário' : 'Novo Funcionário';
+  if (g('mf-del-btn')) g('mf-del-btn').style.display = idx !== undefined ? '' : 'none';
   if (idx !== undefined) {
     const f = DB.funcionarios[idx];
     g('mf-nome').value = f.nome; g('mf-regime').value = f.regime;
@@ -9871,18 +9877,20 @@ function calcFuncCusto() {
   const custoHora = custoMes / hprod;
 
   const bd = g('mf-breakdown');
-  bd.innerHTML = `
-    <div>Salário base</div><div style="font-family:var(--mono);font-weight:600;text-align:right">${fmt(sal)}</div>
-    <div>FGTS (8%)</div><div style="font-family:var(--mono);text-align:right">${fmt(fgts)}</div>
-    <div>RAT + Sistema S</div><div style="font-family:var(--mono);text-align:right">${fmt(rat+sist_s)}</div>
-    ${regime==='lucro'?`<div>INSS Patronal (20%)</div><div style="font-family:var(--mono);text-align:right">${fmt(inss_pat)}</div>`:''}
-    <div>Provisão 13º (8,33%)</div><div style="font-family:var(--mono);text-align:right">${fmt(dec13)}</div>
-    <div>Provisão Férias+1/3 (11,11%)</div><div style="font-family:var(--mono);text-align:right">${fmt(ferias)}</div>
-    <div>Benefícios (VT+VR+outros)</div><div style="font-family:var(--mono);text-align:right">${fmt(beneficios)}</div>
-    <div style="color:var(--muted);font-size:10px">÷ ${hprod}h produtivas</div><div></div>
-  `;
-  g('mf-custo-mes').textContent = fmt(custoMes);
-  g('mf-custo-hora').textContent = fmt(custoHora);
+  if (bd) {
+    bd.innerHTML = `
+      <div>Salário base</div><div style="font-family:var(--mono);font-weight:600;text-align:right">${fmt(sal)}</div>
+      <div>FGTS (8%)</div><div style="font-family:var(--mono);text-align:right">${fmt(fgts)}</div>
+      <div>RAT + Sistema S</div><div style="font-family:var(--mono);text-align:right">${fmt(rat+sist_s)}</div>
+      ${regime==='lucro'?`<div>INSS Patronal (20%)</div><div style="font-family:var(--mono);text-align:right">${fmt(inss_pat)}</div>`:''}
+      <div>Provisão 13º (8,33%)</div><div style="font-family:var(--mono);text-align:right">${fmt(dec13)}</div>
+      <div>Provisão Férias+1/3 (11,11%)</div><div style="font-family:var(--mono);text-align:right">${fmt(ferias)}</div>
+      <div>Benefícios (VT+VR+outros)</div><div style="font-family:var(--mono);text-align:right">${fmt(beneficios)}</div>
+      <div style="color:var(--muted);font-size:10px">÷ ${hprod}h produtivas</div><div></div>
+    `;
+  }
+  if (g('mf-custo-mes'))  g('mf-custo-mes').textContent  = fmt(custoMes);
+  if (g('mf-custo-hora')) g('mf-custo-hora').textContent = fmt(custoHora);
   return { custoMes, custoHora, fgts, inssPat: inss_pat, dec13, ferias };
 }
 
