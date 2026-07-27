@@ -8992,6 +8992,30 @@ function limparTombstonesAntigos() {
   });
 }
 
+// Mescla um objeto único (não um array) com proteção contra sobrescrita
+// por dados desatualizados — mesma causa raiz do bug de orçamentos que
+// revertiam sozinhos, mas aplicada a objetos como DB.config (dados da
+// empresa), que não têm chave/array pra usar mergeArrayByKey. Sem isso,
+// qualquer máquina sincronizando um DB.config antigo/incompleto podia
+// apagar silenciosamente dados salvos mais recentemente em outra máquina.
+function _mergeConfigObjSeguro(localObj, remoteObj, defaults, camposMarcadores) {
+  localObj = localObj || {};
+  remoteObj = remoteObj || {};
+  camposMarcadores = camposMarcadores || ['empresa', 'cnpj', 'fantasia'];
+  function estaVazio(obj) {
+    return !obj || camposMarcadores.every(function(campo) { return !obj[campo]; });
+  }
+  // Objeto local ainda "vazio" (boot inicial, antes de qualquer dado real)
+  // sempre aceita o remoto — senão a primeira carga de dados nunca
+  // aconteceria.
+  if (estaVazio(localObj)) return Object.assign({}, defaults, remoteObj);
+  if (estaVazio(remoteObj)) return Object.assign({}, defaults, localObj);
+  var lTime = Date.parse(localObj._updatedAt || 0) || 0;
+  var rTime = Date.parse(remoteObj._updatedAt || 0) || 0;
+  if (rTime > lTime) return Object.assign({}, defaults, remoteObj);
+  return Object.assign({}, defaults, localObj);
+}
+
 function mergeArrayByKey(localArr, remoteArr, keyField) {
   localArr  = localArr  || [];
   remoteArr = remoteArr || [];
@@ -9156,15 +9180,15 @@ function applyLoadedData(save, skipOrcData) {
   DB.saldoRealConfig  = save.saldoRealConfig  || { valor:0, data:'', origem:'' };
   DB.notasFiscais     = mergeArrayByKey(DB.notasFiscais, save.notasFiscais, 'id');
   DB.onboardingDone   = save.onboardingDone   || false;
-  DB.config        = Object.assign({empresa:'',cnpj:'',ie:'',im:'',cidade:'',uf:'BA',sub:'',logoData:null}, save.config||{});
-  DB.tributario    = Object.assign({
+  DB.config        = _mergeConfigObjSeguro(DB.config, save.config, {empresa:'',cnpj:'',ie:'',im:'',cidade:'',uf:'BA',sub:'',logoData:null});
+  DB.tributario    = _mergeConfigObjSeguro(DB.tributario, save.tributario, {
     regime:'lucro_presumido', lp_iss:3, lp_pis:0.65, lp_cofins:3,
     lp_irpj_serv:4.8, lp_csll_serv:2.88, lp_irpj_prod:1.2, lp_csll_prod:1.08,
     lp_icms:19, lp_ipi:0, icms_credito_entrada:true,
     inss_patronal:20, rat:2, terceiros:5.8, fgts:8,
     sn_faturamento12:0, sn_anexo:'II', sn_iss_proprio:3,
     iss_aliquota:3, historico:[], rotatividade:15,
-  }, save.tributario||{});
+  }, ['regime']);
   DB.folhaMensal   = save.folhaMensal   || [];
   DB.orcamentos     = mergeArrayByKey(DB.orcamentos, save.orcamentos, 'id');
   DB.requisicoes    = mergeArrayByKey(DB.requisicoes, save.requisicoes, 'id');
@@ -29476,6 +29500,7 @@ function salvarEmpresa() {
   DB.config.cep      = getV('emp-cep');
   DB.config.tel      = getV('emp-tel');
   DB.config.email    = getV('emp-email');
+  DB.config._updatedAt = new Date().toISOString();
   if (_empLogoData === 'remove') { DB.config.logoData = null; _empLogoData = null; }
   else if (_empLogoData) { DB.config.logoData = _empLogoData; _empLogoData = null; }
 
@@ -29701,6 +29726,7 @@ function salvarTributario() {
   t.iss_aliquota = t.regime==='simples_nacional' ? (t.sn_iss_proprio||3)
                  : t.regime==='lucro_real'        ? (t.lr_iss||3)
                  : (t.lp_iss||3);
+  t._updatedAt = new Date().toISOString();
 
   saveAll(true);
   showToast('✅ Configuração tributária salva! Carga s/serviços: '+getCargaServicos().toFixed(2)+'% | s/produtos: '+getCargaProdutos().toFixed(2)+'%');
