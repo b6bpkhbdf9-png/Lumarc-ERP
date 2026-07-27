@@ -16601,13 +16601,32 @@ function htmlFotoDoc(f, styleCss) {
   return '<div style="' + styleCss + ';display:flex;align-items:center;justify-content:center;background:#F1F5F9;color:#94A3B8;font-size:10px;text-align:center;padding:4px;box-sizing:border-box">📷 Foto indisponível' + (f && f.name ? '<br>' + f.name : '') + '</div>';
 }
 
+var _fotosPullForcadaPromise = null;
+var _fotosUltimaForcada = 0;
+var FOTOS_FORCAR_COOLDOWN_MS = 10000; // não força busca de novo mais que 1x a cada 10s
+
 function _puxarFotosBin(forcar) {
   if (_fotosBinCarregado && !forcar) return Promise.resolve();
-  if (_fotosPullPromise && !forcar) return _fotosPullPromise;
+  if (!forcar && _fotosPullPromise) return _fotosPullPromise;
+  if (forcar) {
+    // Várias fotos não encontradas ao mesmo tempo pediam, cada uma, sua
+    // PRÓPRIA busca forçada — com várias fotos na tela isso virava dezenas
+    // de requisições simultâneas pra nuvem, estourando o limite de
+    // requisições (429) na hora, o que parecia um loop infinito. Agora
+    // buscas forçadas concorrentes compartilham a mesma tentativa...
+    if (_fotosPullForcadaPromise) return _fotosPullForcadaPromise;
+    // ...e um período mínimo de espera evita bombardear a nuvem também em
+    // sequência rápida (ondas de tentativas separadas por instantes).
+    var agora = Date.now();
+    if (agora - _fotosUltimaForcada < FOTOS_FORCAR_COOLDOWN_MS) {
+      return Promise.resolve();
+    }
+    _fotosUltimaForcada = agora;
+  }
   if (!cloudCfg.apiKey) return Promise.resolve();
   // Busca em TODOS os bins da lista (uma foto pode estar em qualquer um
   // deles, dependendo de quando foi enviada) e mescla tudo no cache.
-  _fotosPullPromise = Promise.all(JSONBIN_FOTOS_BINS.map(function(binId) {
+  var promise = Promise.all(JSONBIN_FOTOS_BINS.map(function(binId) {
     return fetch(JSONBIN_BASE + '/b/' + binId + '/latest', {
       headers: { 'X-Master-Key': cloudCfg.apiKey }
     }).then(function(r) { return r.json(); }).then(function(d) {
@@ -16626,8 +16645,17 @@ function _puxarFotosBin(forcar) {
     _fotosBinCarregado = true;
   }).catch(function(e) {
     console.warn('[FotoStore] Falha ao buscar bins de fotos:', e.message);
-    _fotosPullPromise = null; // permite tentar de novo na próxima chamada
+    if (!forcar) _fotosPullPromise = null; // permite tentar de novo na próxima chamada
   });
+
+  if (forcar) {
+    _fotosPullForcadaPromise = promise.then(
+      function() { _fotosPullForcadaPromise = null; },
+      function() { _fotosPullForcadaPromise = null; }
+    );
+    return _fotosPullForcadaPromise;
+  }
+  _fotosPullPromise = promise;
   return _fotosPullPromise;
 }
 
