@@ -16482,6 +16482,11 @@ const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
 // é buscado quando a foto realmente precisa ser exibida (hidratação
 // preguiçosa), e o cache em memória evita buscar a mesma foto duas vezes.
 const JSONBIN_FOTOS_BIN_ID = '6a4fc972da38895dfe46d8b4';
+// Lista de bins de fotos, em ordem — quando o bin ativo enche (413), o
+// sistema passa a usar o próximo automaticamente, sem precisar de
+// intervenção manual a cada vez. Adicione mais IDs aqui se precisar de
+// mais espaço no futuro.
+const JSONBIN_FOTOS_BINS = ['6a4fc972da38895dfe46d8b4', '6a67a5a0f5f4af5e29c94d2a'];
 
 var _fotosCache      = {};   // id -> dataUrl, já resolvidos nesta sessão
 var _fotosPendentes  = {};   // id -> dataUrl, capturadas agora mas ainda não confirmadas na nuvem
@@ -16592,17 +16597,27 @@ function _puxarFotosBin(forcar) {
   if (_fotosBinCarregado && !forcar) return Promise.resolve();
   if (_fotosPullPromise && !forcar) return _fotosPullPromise;
   if (!cloudCfg.apiKey) return Promise.resolve();
-  _fotosPullPromise = fetch(JSONBIN_BASE + '/b/' + JSONBIN_FOTOS_BIN_ID + '/latest', {
-    headers: { 'X-Master-Key': cloudCfg.apiKey }
-  }).then(function(r) { return r.json(); }).then(function(d) {
-    var rec = (d && d.record) || {};
-    var fotos = rec.fotos || {};
-    Object.keys(fotos).forEach(function(id) {
-      if (!_fotosCache[id]) _fotosCache[id] = fotos[id];
+  // Busca em TODOS os bins da lista (uma foto pode estar em qualquer um
+  // deles, dependendo de quando foi enviada) e mescla tudo no cache.
+  _fotosPullPromise = Promise.all(JSONBIN_FOTOS_BINS.map(function(binId) {
+    return fetch(JSONBIN_BASE + '/b/' + binId + '/latest', {
+      headers: { 'X-Master-Key': cloudCfg.apiKey }
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      var rec = (d && d.record) || {};
+      return rec.fotos || {};
+    }).catch(function(e) {
+      console.warn('[FotoStore] Falha ao buscar bin de fotos ' + binId + ':', e.message);
+      return {};
+    });
+  })).then(function(listasDeFotos) {
+    listasDeFotos.forEach(function(fotos) {
+      Object.keys(fotos).forEach(function(id) {
+        if (!_fotosCache[id]) _fotosCache[id] = fotos[id];
+      });
     });
     _fotosBinCarregado = true;
   }).catch(function(e) {
-    console.warn('[FotoStore] Falha ao buscar bin de fotos:', e.message);
+    console.warn('[FotoStore] Falha ao buscar bins de fotos:', e.message);
     _fotosPullPromise = null; // permite tentar de novo na próxima chamada
   });
   return _fotosPullPromise;
@@ -16624,15 +16639,31 @@ function _agendarPushFotos() {
 // nuvem antes (mesmo padrão de pull-antes-do-push usado no resto do
 // sistema), somando ao invés de sobrescrever, então fotos de outro usuário
 // nunca são apagadas por engano.
-async function _pushFotosBin(_retryCount) {
+function _getFotoBinAtivoIdx() {
+  var idx = parseInt(localStorage.getItem('lumarc_foto_bin_ativo') || '0', 10);
+  if (isNaN(idx) || idx < 0 || idx >= JSONBIN_FOTOS_BINS.length) idx = 0;
+  return idx;
+}
+function _avancarFotoBinAtivo() {
+  var idx = _getFotoBinAtivoIdx();
+  if (idx + 1 < JSONBIN_FOTOS_BINS.length) {
+    localStorage.setItem('lumarc_foto_bin_ativo', String(idx + 1));
+    return true;
+  }
+  return false; // não há mais bins de reserva disponíveis
+}
+
+async function _pushFotosBin(_retryCount, _binIdx) {
   _retryCount = _retryCount || 0;
   if (!Object.keys(_fotosPendentes).length) return;
   if (!cloudCfg.apiKey) return;
+  var binIdx = _binIdx !== undefined ? _binIdx : _getFotoBinAtivoIdx();
+  var binId = JSONBIN_FOTOS_BINS[binIdx];
   var idsDestaVez = Object.keys(_fotosPendentes);
   try {
     var remoto = {};
     try {
-      var resp = await fetch(JSONBIN_BASE + '/b/' + JSONBIN_FOTOS_BIN_ID + '/latest', {
+      var resp = await fetch(JSONBIN_BASE + '/b/' + binId + '/latest', {
         headers: { 'X-Master-Key': cloudCfg.apiKey }
       });
       if (resp.ok) {
@@ -16642,19 +16673,24 @@ async function _pushFotosBin(_retryCount) {
     } catch (e) { /* segue com o que já tem localmente */ }
 
     var mesclado = Object.assign({}, remoto, _fotosCache);
-    var putResp = await fetch(JSONBIN_BASE + '/b/' + JSONBIN_FOTOS_BIN_ID, {
+    var putResp = await fetch(JSONBIN_BASE + '/b/' + binId, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': cloudCfg.apiKey },
       body: JSON.stringify({ fotos: mesclado, _atualizadoEm: new Date().toISOString() }),
     });
 
-    // 413 (conteúdo grande demais) NUNCA deve tentar de novo — reenviar o
-    // mesmo conteúdo do mesmo tamanho sempre vai falhar do mesmo jeito.
-    // Tentar de novo aqui só travava a aba num loop infinito de pushes
-    // fadados a falhar, a cada 2 segundos, para sempre.
+    // 413 (conteúdo grande demais): este bin está cheio. Em vez de só
+    // desistir, avança automaticamente pro próximo bin de reserva da
+    // lista (JSONBIN_FOTOS_BINS) — só desiste de vez se TODOS os bins
+    // disponíveis já estiverem cheios.
     if (putResp.status === 413) {
-      console.error('[FotoStore] Bin de fotos atingiu o limite de tamanho da nuvem (413). Push cancelado — não adianta tentar de novo sem reduzir o volume de fotos guardado.');
-      if (typeof syncLog === 'function') syncLog('❌ Bin de fotos da nuvem está cheio (413) — fotos novas não estão sendo sincronizadas. Fale com o suporte.');
+      if (_avancarFotoBinAtivo()) {
+        console.warn('[FotoStore] Bin de fotos ' + binId + ' está cheio (413) — avançando pro próximo bin automaticamente.');
+        if (typeof syncLog === 'function') syncLog('⚠️ Bin de fotos cheio — passando a usar o próximo bin de reserva automaticamente.');
+        return _pushFotosBin(0, _getFotoBinAtivoIdx());
+      }
+      console.error('[FotoStore] TODOS os bins de fotos estão cheios (413). Push cancelado — precisa criar mais um bin de reserva.');
+      if (typeof syncLog === 'function') syncLog('❌ Todos os espaços de fotos da nuvem estão cheios — fotos novas não estão sendo sincronizadas. Fale com o suporte.');
       if (!_avisouFotoBinCheio) {
         _avisouFotoBinCheio = true;
         if (typeof showToast === 'function') showToast('⚠️ O espaço de fotos na nuvem está cheio — fotos novas não estão sincronizando. Avise o suporte.', 'warn');
@@ -16663,7 +16699,7 @@ async function _pushFotosBin(_retryCount) {
     }
 
     if (putResp.status === 429 && _retryCount < 3) {
-      setTimeout(function() { _pushFotosBin(_retryCount + 1); }, 1500 * (_retryCount + 1));
+      setTimeout(function() { _pushFotosBin(_retryCount + 1, binIdx); }, 1500 * (_retryCount + 1));
       return;
     }
     if (putResp.ok) {
@@ -16671,7 +16707,7 @@ async function _pushFotosBin(_retryCount) {
       _fotosBinCarregado = true;
     } else if (_retryCount < 3) {
       console.warn('[FotoStore] Push de fotos falhou (HTTP ' + putResp.status + '), tentando de novo (' + (_retryCount+1) + '/3).');
-      setTimeout(function() { _pushFotosBin(_retryCount + 1); }, 2000 * (_retryCount + 1));
+      setTimeout(function() { _pushFotosBin(_retryCount + 1, binIdx); }, 2000 * (_retryCount + 1));
     } else {
       console.error('[FotoStore] Push de fotos falhou após 3 tentativas (HTTP ' + putResp.status + '). Desistindo por agora.');
       if (typeof syncLog === 'function') syncLog('❌ Envio de fotos falhou após 3 tentativas (HTTP ' + putResp.status + ').');
@@ -16681,7 +16717,7 @@ async function _pushFotosBin(_retryCount) {
     // nunca deve reagendar pra sempre.
     if (_retryCount < 3) {
       console.warn('[FotoStore] Erro de rede no push de fotos, tentando de novo (' + (_retryCount+1) + '/3):', e.message);
-      setTimeout(function() { _pushFotosBin(_retryCount + 1); }, 2000 * (_retryCount + 1));
+      setTimeout(function() { _pushFotosBin(_retryCount + 1, binIdx); }, 2000 * (_retryCount + 1));
     } else {
       console.error('[FotoStore] Push de fotos falhou após 3 tentativas por erro de rede. Desistindo por agora:', e.message);
       if (typeof syncLog === 'function') syncLog('❌ Envio de fotos falhou após 3 tentativas (erro de rede: ' + e.message + ').');
