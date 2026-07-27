@@ -15663,8 +15663,8 @@ async function exportPropostaComercial() {
   // Company info
   const nomeEmp   = cfg.empresa   || cfg.fantasia || 'LUMARC';
   const subEmp    = cfg.sub       || 'Usinagem · Caldeiraria · Manutenção · Pintura';
-  const endEmp    = [cfg.endereco, cfg.cidade && cfg.uf ? cfg.cidade+' / '+cfg.uf : (cfg.cidade||'')].filter(Boolean).join(' — ') || 'Camaçari — Bahia — Brasil';
-  const telEmp    = cfg.telefone  || '';
+  const endEmp    = [cfg.end, cfg.cep ? 'CEP ' + cfg.cep : '', cfg.cidade && cfg.uf ? cfg.cidade+' / '+cfg.uf : (cfg.cidade||'')].filter(Boolean).join(' — ') || 'Camaçari — Bahia — Brasil';
+  const telEmp    = cfg.tel       || '';
   const emailEmp  = cfg.email     || '';
   const cnpjEmp   = cfg.cnpj      || '';
   // Logo: same source as exportPDF — companyLogo loaded by loadPersistence
