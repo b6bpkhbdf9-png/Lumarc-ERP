@@ -16647,6 +16647,21 @@ async function _pushFotosBin(_retryCount) {
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': cloudCfg.apiKey },
       body: JSON.stringify({ fotos: mesclado, _atualizadoEm: new Date().toISOString() }),
     });
+
+    // 413 (conteúdo grande demais) NUNCA deve tentar de novo — reenviar o
+    // mesmo conteúdo do mesmo tamanho sempre vai falhar do mesmo jeito.
+    // Tentar de novo aqui só travava a aba num loop infinito de pushes
+    // fadados a falhar, a cada 2 segundos, para sempre.
+    if (putResp.status === 413) {
+      console.error('[FotoStore] Bin de fotos atingiu o limite de tamanho da nuvem (413). Push cancelado — não adianta tentar de novo sem reduzir o volume de fotos guardado.');
+      if (typeof syncLog === 'function') syncLog('❌ Bin de fotos da nuvem está cheio (413) — fotos novas não estão sendo sincronizadas. Fale com o suporte.');
+      if (!_avisouFotoBinCheio) {
+        _avisouFotoBinCheio = true;
+        if (typeof showToast === 'function') showToast('⚠️ O espaço de fotos na nuvem está cheio — fotos novas não estão sincronizando. Avise o suporte.', 'warn');
+      }
+      return; // desiste desta rodada, sem reagendar
+    }
+
     if (putResp.status === 429 && _retryCount < 3) {
       setTimeout(function() { _pushFotosBin(_retryCount + 1); }, 1500 * (_retryCount + 1));
       return;
@@ -16654,15 +16669,26 @@ async function _pushFotosBin(_retryCount) {
     if (putResp.ok) {
       idsDestaVez.forEach(function(id) { delete _fotosPendentes[id]; });
       _fotosBinCarregado = true;
+    } else if (_retryCount < 3) {
+      console.warn('[FotoStore] Push de fotos falhou (HTTP ' + putResp.status + '), tentando de novo (' + (_retryCount+1) + '/3).');
+      setTimeout(function() { _pushFotosBin(_retryCount + 1); }, 2000 * (_retryCount + 1));
     } else {
-      console.warn('[FotoStore] Push de fotos falhou (HTTP ' + putResp.status + '), tentando de novo em breve.');
-      _agendarPushFotos();
+      console.error('[FotoStore] Push de fotos falhou após 3 tentativas (HTTP ' + putResp.status + '). Desistindo por agora.');
+      if (typeof syncLog === 'function') syncLog('❌ Envio de fotos falhou após 3 tentativas (HTTP ' + putResp.status + ').');
     }
   } catch (e) {
-    console.warn('[FotoStore] Erro no push de fotos:', e.message);
-    _agendarPushFotos();
+    // Erro de rede/CORS (ex: "Failed to fetch") — também limita tentativas,
+    // nunca deve reagendar pra sempre.
+    if (_retryCount < 3) {
+      console.warn('[FotoStore] Erro de rede no push de fotos, tentando de novo (' + (_retryCount+1) + '/3):', e.message);
+      setTimeout(function() { _pushFotosBin(_retryCount + 1); }, 2000 * (_retryCount + 1));
+    } else {
+      console.error('[FotoStore] Push de fotos falhou após 3 tentativas por erro de rede. Desistindo por agora:', e.message);
+      if (typeof syncLog === 'function') syncLog('❌ Envio de fotos falhou após 3 tentativas (erro de rede: ' + e.message + ').');
+    }
   }
 }
+var _avisouFotoBinCheio = false;
 
 // Monta a tag <img> pronta pra exibir uma referência de foto. Se o dataUrl
 // já está em cache, mostra na hora. Se não, mostra um placeholder cinza com
