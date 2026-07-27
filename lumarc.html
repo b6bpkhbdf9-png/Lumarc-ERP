@@ -15676,6 +15676,16 @@ function removeOSPCFile() {
 // ============================================================
 
 // ── PROPOSTA COMERCIAL / TÉCNICA ─────────────────────────────────────────────
+// Converte quebras de linha (\n, do textarea) pra <br>, escapando HTML
+// antes pra evitar que o texto digitado quebre a estrutura do documento.
+// Sem isso, o navegador ignora quebras de linha simples dentro de células
+// de tabela e outros blocos, juntando tudo numa linha só.
+function _nl2brSeguro(str) {
+  if (!str) return str;
+  var escaped = String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return escaped.replace(/\r\n|\r|\n/g, '<br>');
+}
+
 async function exportPropostaComercial() {
   if (!orcItems.length) { showToast('Adicione itens antes de exportar.','warn'); return; }
   await garantirFotosCarregadas();
@@ -15766,7 +15776,7 @@ async function exportPropostaComercial() {
     orcPrazo   !== '—' ? ['Prazo de entrega',        orcPrazo]   : null,
     orcPgto    !== '—' ? ['Condição de pagamento',   orcPgto]    : null,
     orcValidade        ? ['Validade da proposta',     orcValidade + ' dias'] : null,
-    orcObs     !== '—' ? ['Observações',              orcObs]     : null,
+    orcObs     !== '—' ? ['Observações',              _nl2brSeguro(orcObs)]     : null,
   ].filter(Boolean);
 
   const condHTML = conditions.length ? `
@@ -16047,7 +16057,7 @@ async function exportPDF() {
   <div class="ig">
     <div class="il"><label>Prazo de Entrega</label><span>${fn('o-prazo')}</span></div>
     <div class="il"><label>Condição de Pagamento</label><span>${fn('o-pgto')}</span></div>
-    ${fn('o-obs')!=='—'?`<div class="il" style="grid-column:1/-1"><label>Observações</label><span>${fn('o-obs')}</span></div>`:''}
+    ${fn('o-obs')!=='—'?`<div class="il" style="grid-column:1/-1"><label>Observações</label><span>${_nl2brSeguro(fn('o-obs'))}</span></div>`:''}
   </div>
 
   <div class="assin">
