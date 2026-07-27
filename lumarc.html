@@ -17066,14 +17066,29 @@ async function cloudPush(manual, _retryCount) {
     payload._cloudPushedAt = new Date().toISOString();
     payload._pushedBy = SESSION_ID;
 
-    const resp = await fetch(`${JSONBIN_BASE}/b/${cloudCfg.binId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Master-Key': cloudCfg.apiKey,
-      },
-      body: JSON.stringify(payload),
-    });
+    let resp;
+    try {
+      resp = await fetch(`${JSONBIN_BASE}/b/${cloudCfg.binId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': cloudCfg.apiKey,
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch (fetchErr) {
+      // Erro de rede (ex: "Failed to fetch") — instabilidade momentânea de
+      // conexão, comum e normalmente passageira (diferente de um erro HTTP
+      // como 429/500, que já tem resposta do servidor). Tenta de novo antes
+      // de desistir e mostrar erro pro usuário.
+      if (_retryCount < 3) {
+        var esperaRede = 2000 * (_retryCount + 1);
+        syncLog('⚠️ Falha de rede no envio (' + fetchErr.message + ') — tentando de novo em ' + (esperaRede/1000).toFixed(1) + 's');
+        await new Promise(function(r){ setTimeout(r, esperaRede); });
+        return cloudPush(manual, _retryCount + 1);
+      }
+      throw fetchErr;
+    }
 
     if (resp.status === 429 && _retryCount < 3) {
       var esperaMs = 1500 * (_retryCount + 1);
