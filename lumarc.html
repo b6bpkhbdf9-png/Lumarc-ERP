@@ -7182,7 +7182,24 @@ let itemRowCounts = {};
 function addItemRow(itemId, type, data) {
   if (!itemRowCounts[itemId]) itemRowCounts[itemId] = {};
   if (!itemRowCounts[itemId][type]) itemRowCounts[itemId][type] = 0;
-  const rowId = `r${itemId}-${type}-${++itemRowCounts[itemId][type]}`;
+  var rowId;
+  if (data && data._rowId) {
+    // Reutiliza o ID original da linha já salva, em vez de gerar um novo
+    // pelo contador. Sem isso, se alguma linha foi adicionada e removida
+    // durante a criação original (desalinhando o contador do que
+    // realmente ficou salvo no array), reabrir o orçamento gerava IDs
+    // diferentes dos originais — a busca por _rowId na restauração
+    // falhava, e a máquina/funcionário selecionado caía no padrão (1ª
+    // opção da lista), parecendo que a 2ª linha "copiou" a 1ª.
+    rowId = data._rowId;
+    var _m = /-(\d+)$/.exec(rowId);
+    if (_m) {
+      var _n = parseInt(_m[1], 10);
+      if (_n > itemRowCounts[itemId][type]) itemRowCounts[itemId][type] = _n;
+    }
+  } else {
+    rowId = `r${itemId}-${type}-${++itemRowCounts[itemId][type]}`;
+  }
   const tbody = g(`item-${itemId}-${type}-body`);
   if (!tbody) return;
   const tr = document.createElement('tr');
