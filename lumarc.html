@@ -15719,9 +15719,10 @@ function loadOSPCFile(event) {
   if (file.size > 2000000) {
     showToast('Arquivo muito grande. Máximo 2MB.', 'warn'); return;
   }
-  const reader = new FileReader();
-  reader.onload = e => {
-    _osPC.file = e.target.result;
+  function _guardarRef(dataUrl) {
+    const ref = fotoStoreSalvar(dataUrl, file.name);
+    ref.tipo = file.type === 'application/pdf' ? 'pdf' : 'imagem';
+    _osPC.file = ref;
     _osPC.fileName = file.name;
     const nameEl = g('mos-pc-file-name');
     const sizeEl = g('mos-pc-file-size');
@@ -15730,8 +15731,14 @@ function loadOSPCFile(event) {
     if (sizeEl) sizeEl.textContent = `${(file.size/1024).toFixed(0)}KB · Clique para trocar`;
     if (removeBtn) removeBtn.style.display = '';
     showToast(`📎 "${file.name}" anexado!`);
-  };
-  reader.readAsDataURL(file);
+  }
+  if (file.type === 'application/pdf') {
+    const reader = new FileReader();
+    reader.onload = e => _guardarRef(e.target.result);
+    reader.readAsDataURL(file);
+  } else {
+    comprimirImagem(file, function(dataUrl) { if (dataUrl) _guardarRef(dataUrl); });
+  }
   event.target.value = '';
 }
 
@@ -16887,7 +16894,7 @@ function migrarStatusOrcLegado() {
 }
 
 function migrarFotosParaBinSeparado() {
-  if (localStorage.getItem('lumarc_fotos_migradas_v1')) return;
+  if (localStorage.getItem('lumarc_fotos_migradas_v2')) return;
   var convertidas = 0;
 
   function migrarLista(lista) {
@@ -16905,14 +16912,25 @@ function migrarFotosParaBinSeparado() {
     items.forEach(function(it) { migrarLista(it.fotos); });
     migrarLista(o.estado && o.estado.orcFotos);
   });
-  (DB.ordens || []).forEach(function(o) { migrarLista(o.fotos); });
+  (DB.ordens || []).forEach(function(o) {
+    migrarLista(o.fotos);
+    // pcFile (documento de PC do cliente anexado à OS) é guardado como
+    // string base64 direta, formato diferente de item.fotos/os.fotos —
+    // migra separadamente pro mesmo armazenamento.
+    if (o.pcFile && typeof o.pcFile === 'string' && o.pcFile.indexOf('data:') === 0) {
+      var ref = fotoStoreSalvar(o.pcFile, o.pcFileName || '');
+      ref.tipo = o.pcFile.indexOf('application/pdf') > -1 ? 'pdf' : 'imagem';
+      o.pcFile = ref;
+      convertidas++;
+    }
+  });
 
   if (convertidas > 0) {
-    console.log('[Migração Fotos] ' + convertidas + ' foto(s) movida(s) para o bin separado.');
-    showToast('🔧 Correção automática: ' + convertidas + ' foto(s) movida(s) para armazenamento separado — liberando a sincronização.', 'warn');
+    console.log('[Migração Fotos v2] ' + convertidas + ' item(ns) movido(s) para o bin separado.');
+    showToast('🔧 Correção automática: ' + convertidas + ' item(ns) movido(s) para armazenamento separado — liberando a sincronização.', 'warn');
     saveAll(true);
   }
-  localStorage.setItem('lumarc_fotos_migradas_v1', '1');
+  localStorage.setItem('lumarc_fotos_migradas_v2', '1');
 }
 
 // Lê uma data no formato "dd/mm/yyyy, hh:mm:ss" (usado no histórico e em
