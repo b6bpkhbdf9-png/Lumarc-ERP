@@ -1006,6 +1006,10 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
     <div id="topbar-sol-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(234,179,8,.25);color:#FDE68A;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-solicitacoes')" title="Solicitações de orçamento pendentes">
       🗒️ <span id="topbar-sol-count">0</span> solicitação(ões) pendente(s)
     </div>
+    <div id="topbar-versao-antiga" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(239,68,68,.35);color:#FECACA;font-size:11px;font-weight:700;cursor:help;animation:pulse-versao 2s infinite" title="Feche TODAS as janelas do sistema e rode o ERP_LUMARC.bat de novo pra atualizar">
+      ⚠️ Versão desatualizada — feche tudo e reabra
+    </div>
+    <style>@keyframes pulse-versao { 0%,100% { opacity:1; } 50% { opacity:.6; } }</style>
     <!-- 🔔 Central de alertas -->
     <div id="topbar-alerts-btn" style="position:relative;cursor:pointer" onclick="toggleAlertsPanel()" title="Alertas do sistema">
       <div style="padding:4px 10px;border-radius:5px;background:rgba(255,255,255,.06);font-size:13px;display:flex;align-items:center;gap:5px">
@@ -16530,6 +16534,38 @@ const JSONBIN_BIN_ID  = '6a2c05c8da38895dfeb4d7f8';
 const JSONBIN_API_KEY = '$2a$10$ppAAInu8Ex1sy04Ji1FKX.FARP8uXRFe2cxRc5pZpbMe2a5tGQAs6'; // Chave embutida automaticamenteigurar
 const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
 
+// ── DETECÇÃO DE VERSÃO DESATUALIZADA ────────────────────────────────────────
+// Data/hora deste envio específico do código — atualizada a cada mudança
+// publicada. Comparada com o commit mais recente do GitHub pra avisar,
+// automaticamente e sem precisar rodar nada no console, quando o
+// computador está rodando uma cópia desatualizada (ex: atualizar.py falhou
+// silenciosamente, ou o usuário esqueceu de rodar o updater).
+const APP_BUILD_VERSION = '2026-07-28T20:05:00Z';
+
+// Compara esta build com o commit mais recente publicado no GitHub. Só
+// acende o aviso se o remoto for pelo menos 5 minutos mais novo (evita
+// falso positivo por causa de pequenas diferenças no instante em que a
+// constante foi definida vs. o commit real). Falha silenciosamente em
+// caso de erro de rede/API — nunca mostra aviso "desatualizado" só porque
+// a própria checagem falhou.
+async function verificarVersaoAtualizada() {
+  try {
+    const resp = await fetch('https://api.github.com/repos/b6bpkhbdf9-png/Lumarc-ERP/commits/main');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const dataCommitRemoto = data.commit && data.commit.committer && data.commit.committer.date;
+    if (!dataCommitRemoto) return;
+    const remotoTime = new Date(dataCommitRemoto).getTime();
+    const localTime = new Date(APP_BUILD_VERSION).getTime();
+    const banner = g('topbar-versao-antiga');
+    if (banner) {
+      banner.style.display = (remotoTime - localTime > 5 * 60 * 1000) ? 'flex' : 'none';
+    }
+  } catch (e) {
+    console.warn('[Versão] Falha ao verificar versão mais recente (não gera aviso):', e.message);
+  }
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // ARMAZENAMENTO SEPARADO DE FOTOS
 // ════════════════════════════════════════════════════════════════════════════
@@ -18821,6 +18857,8 @@ function limparDuplicatasFolha() {
   _bootSeguro(updateTopbarOrcBadge, 'updateTopbarOrcBadge');
   _bootSeguro(updateTopbarEnvioBadge, 'updateTopbarEnvioBadge');
   _bootSeguro(updateTopbarSolBadge, 'updateTopbarSolBadge');
+  _bootSeguro(verificarVersaoAtualizada, 'verificarVersaoAtualizada');
+  setInterval(function() { _bootSeguro(verificarVersaoAtualizada, 'verificarVersaoAtualizada'); }, 10 * 60 * 1000);
 }
 
 
