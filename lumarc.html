@@ -4972,11 +4972,15 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 <div class="modal-overlay" id="modal-solicitacao">
   <div class="modal" style="width:560px">
     <div class="modal-hdr">
-      <div class="modal-title" id="sol-modal-title">🗒️ Nova Solicitação de Orçamento</div>
+      <div>
+        <div class="modal-title" id="sol-modal-title">🗒️ Nova Solicitação de Orçamento</div>
+        <div style="font-size:11px;color:var(--muted);font-weight:700;margin-top:2px" id="sol-num-display"></div>
+      </div>
       <button class="modal-close" onclick="closeModal('modal-solicitacao')">×</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="sol-id">
+      <input type="hidden" id="sol-num-hidden">
       <div class="form-grid">
         <div class="form-group full">
           <label>Cliente</label>
@@ -6796,6 +6800,52 @@ async function genOrcNumSeguro() {
     }
   }
   return genOrcNum();
+}
+
+// ── NUMERAÇÃO DE SOLICITAÇÕES DE ORÇAMENTO ──────────────────────────────────
+// Mesmo padrão dos orçamentos (número + verificação segura contra colisão
+// entre dois usuários criando ao mesmo tempo) — facilita se referir a uma
+// solicitação específica em comunicação remota (WhatsApp, telefone, etc.)
+function genSolNum() {
+  if (!DB.config) DB.config = {};
+  var lastSeq = parseInt(DB.config.solSeq || 0);
+  var localSeq = parseInt(localStorage.getItem('lumarc_sol_seq') || 0);
+  var seq = Math.max(lastSeq, localSeq) + 1;
+  (DB.solicitacoesOrc || []).forEach(function(s) {
+    var m = s.num ? s.num.match(/(\d+)$/) : null;
+    if (m) { var n = parseInt(m[1]); if (n >= seq) seq = n + 1; }
+  });
+  DB.config.solSeq = seq;
+  localStorage.setItem('lumarc_sol_seq', seq);
+  return 'SOL-' + new Date().getFullYear() + '-' + String(seq).padStart(4,'0');
+}
+
+async function genSolNumSeguro() {
+  if (cloudCfg.apiKey) {
+    try {
+      var resp = await fetch(JSONBIN_BASE + '/b/' + cloudCfg.binId + '/latest', {
+        headers: { 'X-Master-Key': cloudCfg.apiKey }
+      });
+      if (resp.ok) {
+        var data = await resp.json();
+        if (data.record && !data.record._init) {
+          if (data.record.solicitacoesOrc && data.record.solicitacoesOrc.length) {
+            data.record.solicitacoesOrc.forEach(function(s) {
+              var existe = (DB.solicitacoesOrc||[]).some(function(local){ return local.num === s.num; });
+              if (!existe) { if (!DB.solicitacoesOrc) DB.solicitacoesOrc = []; DB.solicitacoesOrc.push(s); }
+            });
+          }
+          if (data.record.config && data.record.config.solSeq) {
+            if (!DB.config) DB.config = {};
+            DB.config.solSeq = Math.max(DB.config.solSeq||0, data.record.config.solSeq);
+          }
+        }
+      }
+    } catch(e) {
+      console.warn('[SolNum] Pull pré-geração falhou, usando estado local:', e.message);
+    }
+  }
+  return genSolNum();
 }
 
 // ---- ADD ITEM ----
@@ -20348,6 +20398,27 @@ function abrirModalSolicitacao(id) {
   g('sol-desc').value    = sol ? (sol.desc||'') : '';
   _solAnexosTemp = sol ? (sol.anexos||[]).map(function(a){ return Object.assign({}, a); }) : [];
   renderSolAnexos();
+
+  if (sol && sol.num) {
+    // Editando uma já existente — mantém o número que já tem.
+    g('sol-num-hidden').value = sol.num;
+    g('sol-num-display').textContent = sol.num;
+  } else {
+    // Nova solicitação: mostra um número provisório instantâneo (não trava
+    // a UI) e confirma/corrige com a nuvem logo em seguida — mesmo padrão
+    // usado nos orçamentos, evita colisão entre dois usuários criando ao
+    // mesmo tempo.
+    var _numProvisorio = genSolNum();
+    g('sol-num-hidden').value = _numProvisorio;
+    g('sol-num-display').textContent = _numProvisorio;
+    genSolNumSeguro().then(function(numConfirmado) {
+      if (g('sol-num-hidden') && g('sol-num-hidden').value === _numProvisorio) {
+        g('sol-num-hidden').value = numConfirmado;
+        g('sol-num-display').textContent = numConfirmado;
+      }
+    });
+  }
+
   openModal('modal-solicitacao');
 }
 
@@ -20403,6 +20474,7 @@ function salvarSolicitacao() {
   if (!DB.solicitacoesOrc) DB.solicitacoesOrc = [];
   var now = new Date().toISOString();
   var id = g('sol-id').value;
+  var num = g('sol-num-hidden').value;
   if (id) {
     var sol = DB.solicitacoesOrc.find(function(s){return s.id===id;});
     if (sol) {
@@ -20411,11 +20483,13 @@ function salvarSolicitacao() {
       sol.origem  = g('sol-origem').value;
       sol.desc    = g('sol-desc').value.trim();
       sol.anexos  = _solAnexosTemp;
+      if (!sol.num) sol.num = num; // reparo pra solicitações antigas sem número
       sol._updatedAt = now;
     }
   } else {
     DB.solicitacoesOrc.push({
       id: 'solreq-' + Date.now() + '-' + Math.random().toString(36).slice(2,9),
+      num: num,
       cliente: cliente,
       contato: g('sol-contato').value.trim(),
       origem:  g('sol-origem').value,
@@ -20503,10 +20577,11 @@ function renderSolicitacoesTab() {
         var qtdAnexos = (s.anexos||[]).length;
         var rot = (idx % 5) - 2; // leve rotação alternada, efeito post-it
         return '<div style="background:#FEF9C3;border:1px solid #FDE68A;border-radius:10px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.08);transform:rotate(' + rot + 'deg)">'
-          + '<div style="display:flex;justify-content:space-between;align-items:start;gap:6px;margin-bottom:8px">'
+          + '<div style="display:flex;justify-content:space-between;align-items:start;gap:6px;margin-bottom:4px">'
           + '<div style="font-weight:800;font-size:14px;color:#78350F">' + (s.cliente||'—') + '</div>'
           + '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:' + oi.cor + '22;color:' + oi.cor + ';font-weight:700;white-space:nowrap">' + oi.icon + ' ' + oi.label + '</span>'
           + '</div>'
+          + (s.num ? '<div style="font-size:10px;color:#B45309;font-weight:700;font-family:var(--mono);margin-bottom:8px">' + s.num + '</div>' : '')
           + (s.contato ? '<div style="font-size:11px;color:#92400E;margin-bottom:6px">📞 ' + s.contato + '</div>' : '')
           + '<div style="font-size:12px;color:#451A03;margin-bottom:8px;white-space:pre-wrap;max-height:80px;overflow:auto">' + (s.desc ? s.desc.replace(/</g,'&lt;') : '<em style="color:#92400E">Sem anotações</em>') + '</div>'
           + (qtdAnexos ? '<div style="font-size:11px;color:#92400E;margin-bottom:6px">📎 ' + qtdAnexos + ' anexo(s)</div>' : '')
@@ -20526,7 +20601,7 @@ function renderSolicitacoesTab() {
     boardConv.innerHTML = convertidas.length
       ? convertidas.map(function(s) {
           return '<div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px;opacity:.7;font-size:11px">'
-            + '<div style="font-weight:700">' + (s.cliente||'—') + '</div>'
+            + '<div style="font-weight:700">' + (s.cliente||'—') + (s.num ? ' <span style="font-family:var(--mono);font-weight:400">(' + s.num + ')</span>' : '') + '</div>'
             + '<div style="color:var(--muted)">✅ convertido em ' + new Date(s.convertidoEm||s._updatedAt).toLocaleDateString('pt-BR') + '</div>'
             + '</div>';
         }).join('')
