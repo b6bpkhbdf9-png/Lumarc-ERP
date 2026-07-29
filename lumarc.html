@@ -16540,14 +16540,15 @@ const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
 // automaticamente e sem precisar rodar nada no console, quando o
 // computador está rodando uma cópia desatualizada (ex: atualizar.py falhou
 // silenciosamente, ou o usuário esqueceu de rodar o updater).
-const APP_BUILD_VERSION = '2026-07-28T20:05:00Z';
+const APP_BUILD_VERSION = '2026-07-29T10:45:00Z';
 
 // Compara esta build com o commit mais recente publicado no GitHub. Só
-// acende o aviso se o remoto for pelo menos 5 minutos mais novo (evita
+// acende o aviso se o remoto for pelo menos 30 minutos mais novo (evita
 // falso positivo por causa de pequenas diferenças no instante em que a
-// constante foi definida vs. o commit real). Falha silenciosamente em
-// caso de erro de rede/API — nunca mostra aviso "desatualizado" só porque
-// a própria checagem falhou.
+// constante foi definida vs. o commit real — o processo de testar antes
+// de publicar naturalmente cria alguns minutos de defasagem). Falha
+// silenciosamente em caso de erro de rede/API — nunca mostra aviso
+// "desatualizado" só porque a própria checagem falhou.
 async function verificarVersaoAtualizada() {
   try {
     const resp = await fetch('https://api.github.com/repos/b6bpkhbdf9-png/Lumarc-ERP/commits/main');
@@ -16559,7 +16560,7 @@ async function verificarVersaoAtualizada() {
     const localTime = new Date(APP_BUILD_VERSION).getTime();
     const banner = g('topbar-versao-antiga');
     if (banner) {
-      banner.style.display = (remotoTime - localTime > 5 * 60 * 1000) ? 'flex' : 'none';
+      banner.style.display = (remotoTime - localTime > 30 * 60 * 1000) ? 'flex' : 'none';
     }
   } catch (e) {
     console.warn('[Versão] Falha ao verificar versão mais recente (não gera aviso):', e.message);
