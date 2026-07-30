@@ -6960,23 +6960,22 @@ function renderItemCard(item, openBody) {
   // Trigger recalc after all rows rendered
   setTimeout(() => { calcItemTotals(item.id); updateItemPricing(item.id); }, 0);
 
-  // Rebuild func/maq selects and restore selected values from item data
-  document.querySelectorAll(`#item-${item.id}-mo-body select.func-select`).forEach(sel => {
+  // Rebuild func/maq selects e restaura o valor selecionado casando pela
+  // POSIÇÃO (não por um identificador de linha) — a linha N do formulário
+  // sempre corresponde exatamente ao item N do array salvo, já que ambos
+  // são criados na mesma ordem, um pouco acima. Isso nunca falha, mesmo em
+  // orçamentos salvos antes de qualquer correção anterior de identificador
+  // de linha (que dependia de um valor que podia já estar errado nos dados
+  // salvos, fazendo a 2ª/3ª linha "herdar" a descrição da 1ª ao reabrir).
+  document.querySelectorAll(`#item-${item.id}-mo-body select.func-select`).forEach((sel, idx) => {
     buildFuncSelect(sel);
-    // Restore the selected funcId after populating the select
-    const rowId = sel.id ? sel.id.replace('-sel','') : '';
-    if (rowId) {
-      const moRow = (item.mo||[]).find(r => r._rowId === rowId || sel.id === rowId+'-sel');
-      if (moRow && moRow.funcId) sel.value = moRow.funcId;
-    }
+    const moRow = (item.mo||[])[idx];
+    if (moRow && moRow.funcId) sel.value = moRow.funcId;
   });
-  document.querySelectorAll(`#item-${item.id}-maq-body select.maq-select`).forEach(sel => {
+  document.querySelectorAll(`#item-${item.id}-maq-body select.maq-select`).forEach((sel, idx) => {
     buildMaqSelect(sel);
-    const rowId = sel.id ? sel.id.replace('-sel','') : '';
-    if (rowId) {
-      const maqRow = (item.maq||[]).find(r => r._rowId === rowId || sel.id === rowId+'-sel');
-      if (maqRow && maqRow.maqId) sel.value = maqRow.maqId;
-    }
+    const maqRow = (item.maq||[])[idx];
+    if (maqRow && maqRow.maqId) sel.value = maqRow.maqId;
   });
 }
 
@@ -16650,7 +16649,7 @@ const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
 // automaticamente e sem precisar rodar nada no console, quando o
 // computador está rodando uma cópia desatualizada (ex: atualizar.py falhou
 // silenciosamente, ou o usuário esqueceu de rodar o updater).
-const APP_BUILD_VERSION = '2026-07-30T17:00:00Z';
+const APP_BUILD_VERSION = '2026-07-30T17:20:00Z';
 
 // Compara esta build com o commit mais recente publicado no GitHub. Só
 // acende o aviso se o remoto for pelo menos 30 minutos mais novo (evita
