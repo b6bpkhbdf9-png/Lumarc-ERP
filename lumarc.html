@@ -1390,6 +1390,18 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
       </div>
 
       <hr class="div">
+      <!-- NOTA FISCAL DE REMESSA -->
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:10px">🚚 Nota Fiscal de Remessa</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Nº da Nota Fiscal de Remessa</label>
+          <input type="text" id="mos-nfr-num" placeholder="Ex: 12345">
+        </div>
+        <div class="form-group"><label>Nº do item nesta nota</label>
+          <input type="text" id="mos-nfr-item" placeholder="Ex: 1">
+        </div>
+      </div>
+
+      <hr class="div">
       <!-- FOTOS DA OS -->
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:8px">📷 Fotos do Processo</div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Fotos antes/durante/após o serviço, do defeito encontrado, ou da peça de referência.</div>
@@ -3000,6 +3012,31 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-confirmar-envio-orc')">Cancelar</button>
       <button class="btn btn-green" onclick="confirmarEnvioOrc()">✅ Confirmar Envio</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL NF DE REMESSA (ao gerar OS/PV a partir do orçamento) ===== -->
+<div class="modal-overlay" id="modal-nf-remessa">
+  <div class="modal" style="width:520px">
+    <div class="modal-hdr">
+      <div class="modal-title">🔧 Gerar Documentos do Orçamento</div>
+      <button class="modal-close" onclick="closeModal('modal-nf-remessa')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="nfr-resumo" style="font-size:13px;font-weight:700;margin-bottom:14px"></div>
+      <div class="form-group full" style="margin-bottom:14px">
+        <label>Nº da Nota Fiscal de Remessa <span style="color:var(--muted);font-weight:400">(opcional)</span></label>
+        <input type="text" id="nfr-num" placeholder="Ex: 12345">
+      </div>
+      <div class="form-group full">
+        <label>Nº do item de cada linha nesta nota <span style="color:var(--muted);font-weight:400">(opcional, ajuste se necessário)</span></label>
+        <div id="nfr-itens-lista" style="max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:6px;padding:8px"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-nf-remessa')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarGerarDocumentosOrc()">✅ Confirmar e Gerar</button>
     </div>
   </div>
 </div>
@@ -8802,6 +8839,8 @@ function clearOrc(force) {
 }
 
 // ---- GERAR OS / PV ----
+var _gerarOSPendente = null;
+
 function gerarDocumentosOrc() {
   if (!orcItems.length) { showToast('Adicione itens antes de gerar documentos.', 'warn'); return; }
   const servItems = orcItems.filter(it => it.tipo === 'servico' || it.tipo === 'misto');
@@ -8810,7 +8849,6 @@ function gerarDocumentosOrc() {
     servItems.length  ? `${servItems.length} OS (serviço)`   : '',
     vendaItems.length ? `${vendaItems.length} PV (produto)` : '',
   ].filter(Boolean).join(' + ');
-  if (!confirm(`Gerar: ${msg}\nIsso criará documentos para todos os itens do orçamento.`)) return;
 
   // ── Calcula distribuição travada a partir dos custos REAIS dos orcItems ──────
   // Soma todos os componentes de custo de todos os itens
@@ -8845,8 +8883,53 @@ function gerarDocumentosOrc() {
     luc:  Math.max(0, totLucro / totPreco * 100),
   } : null;
 
-  var _orcNumAtual = g('o-num')?.value || '';
+  var vendaPuraItens = orcItems.filter(it => it.tipo === 'venda');
+
+  // Guarda tudo que já foi calculado — a criação de fato só acontece depois
+  // de confirmar o modal (confirmarGerarDocumentosOrc), pra poder pedir o
+  // número da nota fiscal de remessa e o item de cada linha antes.
+  _gerarOSPendente = {
+    servItems: servItems,
+    vendaPuraItems: vendaPuraItens,
+    distTravada: distTravada,
+    orcNumAtual: g('o-num')?.value || '',
+  };
+
+  abrirModalNFRemessa(msg, servItems.concat(vendaPuraItens));
+}
+
+// Monta e abre o modal pedindo Nº da NF de Remessa + Nº do item em cada
+// linha, antes de efetivamente criar as OS/PV a partir do orçamento.
+function abrirModalNFRemessa(msg, itensCombinados) {
+  g('nfr-resumo').textContent = 'Gerar: ' + msg;
+  g('nfr-num').value = '';
+  var listaEl = g('nfr-itens-lista');
+  listaEl.innerHTML = itensCombinados.map(function(item, i) {
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">'
+      + '<div style="flex:1;font-size:12px">' + (item.desc || '(sem descrição)') + '</div>'
+      + '<input type="text" class="nfr-item-num" data-idx="' + i + '" value="' + (i+1) + '" style="width:70px;text-align:center;font-size:12px;padding:4px" title="Nº do item nesta nota">'
+      + '</div>';
+  }).join('') || '<div style="color:var(--muted);font-size:12px">Nenhum item.</div>';
+  openModal('modal-nf-remessa');
+}
+
+// Executa a criação de fato das OS/PV, agora incluindo o número da nota
+// fiscal de remessa e o número do item nessa nota em cada registro.
+function confirmarGerarDocumentosOrc() {
+  if (!_gerarOSPendente) { closeModal('modal-nf-remessa'); return; }
+  var servItems      = _gerarOSPendente.servItems;
+  var vendaPuraItems = _gerarOSPendente.vendaPuraItems;
+  var distTravada    = _gerarOSPendente.distTravada;
+  var _orcNumAtual   = _gerarOSPendente.orcNumAtual;
+
+  var nfRemessaNum = g('nfr-num').value.trim();
+  var itemNums = {};
+  document.querySelectorAll('.nfr-item-num').forEach(function(inp) {
+    itemNums[inp.getAttribute('data-idx')] = inp.value.trim();
+  });
+
   var _itemSeqCounter = 1;
+  var _idxGlobal = 0;
   servItems.forEach(item => {
     DB.ordens.push({
       id: 'os-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),
@@ -8867,6 +8950,8 @@ function gerarDocumentosOrc() {
       docTipo: item.tipo === 'misto' ? 'os_pv' : 'os',
       fotos:[],
       distTravada,
+      nfRemessaNum: nfRemessaNum,
+      nfRemessaItem: itemNums[_idxGlobal++] || '',
       criadoEm: new Date().toLocaleString('pt-BR')
     });
   });
@@ -8874,7 +8959,6 @@ function gerarDocumentosOrc() {
   // ── Itens de VENDA (produto) — cria Pedido de Venda separado ────────────────
   // Itens 'misto' já tiveram seu componente de serviço gerado acima como OS+PV;
   // aqui geramos apenas os itens PUROS de venda (tipo === 'venda').
-  var vendaPuraItems = orcItems.filter(it => it.tipo === 'venda');
   vendaPuraItems.forEach(item => {
     DB.ordens.push({
       id: 'os-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),
@@ -8895,10 +8979,13 @@ function gerarDocumentosOrc() {
       docTipo: 'pv',
       fotos:[],
       distTravada,
+      nfRemessaNum: nfRemessaNum,
+      nfRemessaItem: itemNums[_idxGlobal++] || '',
       criadoEm: new Date().toLocaleString('pt-BR')
     });
   });
 
+  closeModal('modal-nf-remessa');
   saveAll(true);
   renderResumo();
   const count = servItems.length + vendaPuraItems.length;
@@ -10344,7 +10431,7 @@ document.querySelectorAll('.section-body').forEach(b => {
 // ============================================================
 ['modal-func','modal-maq','modal-desp','modal-cli','modal-forn','modal-prod',
  'modal-mat','modal-os','modal-pagar','modal-receber','modal-compras',
- 'modal-pc','modal-rc','modal-plano-conta','modal-onboarding'].forEach(function(id) {
+ 'modal-pc','modal-rc','modal-plano-conta','modal-onboarding','modal-nf-remessa'].forEach(function(id) {
   var el = g(id);
   if (el) el.addEventListener('click', function(e) { if (e.target === el) closeModal(id); });
 });
@@ -11296,6 +11383,8 @@ function openOSModal(idx) {
     if (g('mos-pc-num'))   g('mos-pc-num').value   = '';
     if (g('mos-pc-data'))  g('mos-pc-data').value  = '';
     if (g('mos-doc-tipo')) g('mos-doc-tipo').value = (null)?.value === 'venda' ? 'pv' : 'os';
+    if (g('mos-nfr-num'))  g('mos-nfr-num').value  = '';
+    if (g('mos-nfr-item')) g('mos-nfr-item').value = '';
     removeOSPCFile();
   }
   // Common: load fotos and PC if editing
@@ -11308,6 +11397,8 @@ function openOSModal(idx) {
       if (g('mos-pc-num'))   g('mos-pc-num').value   = os.pcNum   || '';
       if (g('mos-pc-data'))  g('mos-pc-data').value  = os.pcData  || '';
       if (g('mos-doc-tipo')) g('mos-doc-tipo').value = os.docTipo || 'os';
+      if (g('mos-nfr-num'))  g('mos-nfr-num').value  = os.nfRemessaNum  || '';
+      if (g('mos-nfr-item')) g('mos-nfr-item').value = os.nfRemessaItem || '';
       const nameEl = g('mos-pc-file-name');
       const removeBtn = g('mos-pc-remove-btn');
       if (nameEl) nameEl.textContent = _osPC.fileName || 'Clique para anexar PDF ou imagem';
@@ -11453,6 +11544,8 @@ function saveOS() {
     docTipo:    g('mos-doc-tipo')?.value || 'os',
     pcFile:     _osPC.file     || null,
     pcFileName: _osPC.fileName || '',
+    nfRemessaNum:  g('mos-nfr-num')?.value  || '',
+    nfRemessaItem: g('mos-nfr-item')?.value || '',
     tipoOrc:    (orcItems[0]?.tipo || 'servico')  || 'servico',
     criadoEm: DB.editOSIdx >= 0 ? DB.ordens[DB.editOSIdx].criadoEm : now,
   };
@@ -16553,7 +16646,7 @@ const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
 // automaticamente e sem precisar rodar nada no console, quando o
 // computador está rodando uma cópia desatualizada (ex: atualizar.py falhou
 // silenciosamente, ou o usuário esqueceu de rodar o updater).
-const APP_BUILD_VERSION = '2026-07-30T15:15:00Z';
+const APP_BUILD_VERSION = '2026-07-30T16:00:00Z';
 
 // Compara esta build com o commit mais recente publicado no GitHub. Só
 // acende o aviso se o remoto for pelo menos 30 minutos mais novo (evita
