@@ -16540,7 +16540,7 @@ const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
 // automaticamente e sem precisar rodar nada no console, quando o
 // computador está rodando uma cópia desatualizada (ex: atualizar.py falhou
 // silenciosamente, ou o usuário esqueceu de rodar o updater).
-const APP_BUILD_VERSION = '2026-07-29T10:45:00Z';
+const APP_BUILD_VERSION = '2026-07-30T14:30:00Z';
 
 // Compara esta build com o commit mais recente publicado no GitHub. Só
 // acende o aviso se o remoto for pelo menos 30 minutos mais novo (evita
@@ -28901,6 +28901,51 @@ function buildAllAlerts() {
       (currentUser.perfil==='admin'||currentUser.perfil==='gerente')) {
     alertas.push({icon:'📝', titulo:rcPend.length+' RC aguardando aprovação',
       desc:'Requisições de compra pendentes', link:'tab-rc'});
+  }
+
+  // RC já aprovada mas ainda não virou Pedido de Compra — sem isso, uma
+  // vez aprovada, só verbal/lembrança avisava que faltava efetivamente
+  // fazer a compra.
+  var rcAprovSemPC = (DB.requisicoes||[]).filter(function(r){ return r.status==='aprovada'; });
+  if (rcAprovSemPC.length > 0) {
+    alertas.push({icon:'🛒', titulo:rcAprovSemPC.length+' RC aprovada(s) aguardando Pedido de Compra',
+      desc:'Requisições já aprovadas, ainda sem PC gerado', link:'tab-rc'});
+  }
+
+  // Pedido de Compra pendente de recebimento físico
+  var pcPendRecebimento = (DB.pedidosCompra||[]).filter(function(pc){
+    var s = pc.status||'';
+    return s!=='Recebido' && s!=='Recebido com divergência' && s!=='Cancelado';
+  });
+  if (pcPendRecebimento.length > 0) {
+    alertas.push({icon:'📦', titulo:pcPendRecebimento.length+' Pedido(s) de Compra aguardando recebimento',
+      desc:'Ainda não deram entrada física no estoque', link:'tab-compras'});
+  }
+
+  // OS paradas aguardando ação de Engenharia, Compras ou Material — o
+  // lembrete pedido explicitamente: sem isso, só quem for conferir a
+  // lista (ou for avisado verbalmente) sabe que há OS esperando alguém
+  // agir, até chegar em Produção.
+  var osAguardando = { 'Aguardando Engenharia':[], 'Aguardando Compra':[], 'Aguardando Material':[] };
+  (DB.ordens||[]).forEach(function(o){
+    if (osAguardando[o.status]) osAguardando[o.status].push(o);
+  });
+  Object.keys(osAguardando).forEach(function(st) {
+    var lista = osAguardando[st];
+    if (lista.length > 0) {
+      alertas.push({icon:'🔧', titulo:lista.length+' OS em "'+st+'"',
+        desc:lista.slice(0,3).map(function(o){return o.num;}).join(', ') + (lista.length>3?'...':''), link:'tab-os'});
+    }
+  });
+
+  // OS concluída/entregue mas ainda não faturada — fecha a ponta que falta
+  // pra chegar no financeiro (contas a receber).
+  var osNaoFaturada = (DB.ordens||[]).filter(function(o){
+    return (o.status==='Concluída' || o.status==='Entregue');
+  });
+  if (osNaoFaturada.length > 0) {
+    alertas.push({icon:'🧾', titulo:osNaoFaturada.length+' OS pendente(s) de faturamento',
+      desc:osNaoFaturada.slice(0,3).map(function(o){return o.num;}).join(', ') + (osNaoFaturada.length>3?'...':''), link:'tab-os'});
   }
 
   // Orçamentos aprovados internamente ('liberado') há mais de 48h sem
