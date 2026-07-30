@@ -994,32 +994,32 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
   </div>
   <div style="display:flex;gap:8px;">
     <div id="topbar-user-info" style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:5px;background:rgba(255,255,255,.06)"></div>
-    <div id="topbar-rc-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(245,158,11,.25);color:#FCD34D;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-rc')" title="Requisições aguardando aprovação">
-      📝 <span id="topbar-rc-count">0</span> RC pendente(s)
-    </div>
-    <div id="topbar-orc-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(245,158,11,.25);color:#FCD34D;font-size:11px;font-weight:700;cursor:pointer" onclick="irParaOrcamentosFiltrado('aguardando')" title="Orçamentos aguardando aprovação">
-      📋 <span id="topbar-orc-count">0</span> orçamento(s) pendente(s)
-    </div>
-    <div id="topbar-envio-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(34,197,94,.25);color:#86EFAC;font-size:11px;font-weight:700;cursor:pointer" onclick="irParaOrcamentosFiltrado('liberado')" title="Orçamentos aguardando envio ao cliente">
-      📧 <span id="topbar-envio-count">0</span> aguardando envio
-    </div>
-    <div id="topbar-sol-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(234,179,8,.25);color:#FDE68A;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-solicitacoes')" title="Solicitações de orçamento pendentes">
-      🗒️ <span id="topbar-sol-count">0</span> solicitação(ões) pendente(s)
-    </div>
-    <div id="topbar-rcpc-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(249,115,22,.25);color:#FDBA74;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-rc')" title="RC's aprovadas aguardando virar Pedido de Compra">
-      🛒 <span id="topbar-rcpc-count">0</span> RC(s) aguardando PC
-    </div>
-    <div id="topbar-pcreceb-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(59,130,246,.25);color:#93C5FD;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-compras')" title="Pedidos de Compra aguardando recebimento físico">
-      📦 <span id="topbar-pcreceb-count">0</span> PC(s) aguardando recebimento
-    </div>
-    <div id="topbar-osaguard-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(124,58,237,.25);color:#C4B5FD;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-os')" title="OS aguardando ação de Engenharia, Compras ou Material">
-      🔧 <span id="topbar-osaguard-count">0</span> OS aguardando ação
-    </div>
-    <div id="topbar-osfat-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(20,184,166,.25);color:#5EEAD4;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-os')" title="OS concluída/entregue aguardando faturamento">
-      🧾 <span id="topbar-osfat-count">0</span> OS p/ faturar
+    <div id="topbar-rc-badge" style="display:none"></div>
+    <div id="topbar-orc-badge" style="display:none"></div>
+    <div id="topbar-envio-badge" style="display:none"></div>
+    <div id="topbar-sol-badge" style="display:none"></div>
+    <div id="topbar-rcpc-badge" style="display:none"></div>
+    <div id="topbar-pcreceb-badge" style="display:none"></div>
+    <div id="topbar-osaguard-badge" style="display:none"></div>
+    <div id="topbar-osfat-badge" style="display:none"></div>
+    <!-- 📋 Pendências consolidadas — substitui os 8 badges individuais que
+         antes lotavam a barra e causavam sobreposição de texto. Mesmo
+         padrão visual/comportamento do sino de alertas: um botão só, com
+         contador total, que abre um menu detalhando cada categoria. -->
+    <div id="topbar-pend-btn" style="position:relative;cursor:pointer" onclick="toggleTopbarPendencias()" title="Pendências do fluxo de trabalho">
+      <div id="topbar-pend-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(245,158,11,.25);color:#FCD34D;font-size:11px;font-weight:700">
+        📋 <span id="topbar-pend-count">0</span> pendência(s)
+      </div>
+      <div id="topbar-pend-panel" style="display:none;position:absolute;right:0;top:44px;width:340px;background:var(--hbg);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.4);z-index:1000;max-height:500px;overflow-y:auto">
+        <div style="padding:12px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:800;display:flex;justify-content:space-between;align-items:center">
+          <span>📋 Pendências do fluxo</span>
+          <button class="btn btn-ghost btn-xs" onclick="toggleTopbarPendencias(event)">×</button>
+        </div>
+        <div id="topbar-pend-list" style="padding:4px"></div>
+      </div>
     </div>
     <div id="topbar-versao-antiga" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(239,68,68,.35);color:#FECACA;font-size:11px;font-weight:700;cursor:help;animation:pulse-versao 2s infinite" title="Feche TODAS as janelas do sistema e rode o ERP_LUMARC.bat de novo pra atualizar">
-      ⚠️ Versão desatualizada — feche tudo e reabra
+      ⚠️ Versão desatualizada
     </div>
     <style>@keyframes pulse-versao { 0%,100% { opacity:1; } 50% { opacity:.6; } }</style>
     <!-- 🔔 Central de alertas -->
@@ -16650,7 +16650,7 @@ const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
 // automaticamente e sem precisar rodar nada no console, quando o
 // computador está rodando uma cópia desatualizada (ex: atualizar.py falhou
 // silenciosamente, ou o usuário esqueceu de rodar o updater).
-const APP_BUILD_VERSION = '2026-07-30T16:20:00Z';
+const APP_BUILD_VERSION = '2026-07-30T17:00:00Z';
 
 // Compara esta build com o commit mais recente publicado no GitHub. Só
 // acende o aviso se o remoto for pelo menos 30 minutos mais novo (evita
@@ -20795,68 +20795,105 @@ function irParaOrcamentosFiltrado(status) {
   }, 100);
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// PAINEL CONSOLIDADO DE PENDÊNCIAS
+// ════════════════════════════════════════════════════════════════════════════
+// Substitui os 8 badges individuais que antes ficavam sempre visíveis na
+// barra superior — com o tempo, foram se acumulando (RC, orçamento,
+// solicitação, RC->PC, PC->recebimento, OS->ação, OS->faturamento) até o
+// ponto de sobrepor texto e desorganizar o layout. Agora cada categoria só
+// atualiza um contador num objeto compartilhado; um único botão soma tudo
+// e mostra o detalhe num menu suspenso ao clicar — mesmo padrão do sino de
+// alertas, mas para pendências de fluxo de trabalho (não avisos pontuais).
+var _pendenciasInfo = {
+  rc:       { label: 'RC(s) aguardando aprovação',            icone:'📝', count:0, cor:'#FCD34D' },
+  orc:      { label: 'Orçamento(s) aguardando aprovação',      icone:'📋', count:0, cor:'#FCD34D' },
+  envio:    { label: 'Orçamento(s) aguardando envio',          icone:'📧', count:0, cor:'#86EFAC' },
+  sol:      { label: 'Solicitação(ões) de orçamento pendente(s)', icone:'🗒️', count:0, cor:'#FDE68A' },
+  rcpc:     { label: 'RC(s) aguardando Pedido de Compra',      icone:'🛒', count:0, cor:'#FDBA74' },
+  pcreceb:  { label: 'Pedido(s) de Compra aguardando recebimento', icone:'📦', count:0, cor:'#93C5FD' },
+  osaguard: { label: 'OS aguardando ação (Engenharia/Compra/Material)', icone:'🔧', count:0, cor:'#C4B5FD' },
+  osfat:    { label: 'OS aguardando faturamento',              icone:'🧾', count:0, cor:'#5EEAD4' },
+};
+
+function renderTopbarPendencias() {
+  var total = Object.keys(_pendenciasInfo).reduce(function(s,k){ return s + (_pendenciasInfo[k].count||0); }, 0);
+  var badge = g('topbar-pend-badge');
+  var count = g('topbar-pend-count');
+  if (badge) {
+    if (total > 0) { badge.style.display = 'flex'; if (count) count.textContent = total; }
+    else { badge.style.display = 'none'; }
+  }
+  var listEl = g('topbar-pend-list');
+  if (listEl) {
+    var chaves = Object.keys(_pendenciasInfo).filter(function(k){ return (_pendenciasInfo[k].count||0) > 0; });
+    listEl.innerHTML = chaves.length ? chaves.map(function(k) {
+      var info = _pendenciasInfo[k];
+      return '<div onclick="pendenciaItemClick(\'' + k + '\')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;font-size:12px">'
+        + '<span>' + info.icone + ' ' + info.label + '</span>'
+        + '<span style="background:' + info.cor + '33;color:' + info.cor + ';font-weight:700;padding:2px 8px;border-radius:10px;font-size:11px;white-space:nowrap">' + info.count + '</span>'
+        + '</div>';
+    }).join('') : '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">Nenhuma pendência 🎉</div>';
+  }
+}
+
+function pendenciaItemClick(key) {
+  toggleTopbarPendencias();
+  if (key === 'orc') { irParaOrcamentosFiltrado('aguardando'); return; }
+  if (key === 'envio') { irParaOrcamentosFiltrado('liberado'); return; }
+  if (key === 'sol') { goToTab('tab-solicitacoes'); return; }
+  if (key === 'rc' || key === 'rcpc') { goToTab('tab-rc'); return; }
+  if (key === 'pcreceb') { goToTab('tab-compras'); return; }
+  if (key === 'osaguard' || key === 'osfat') { goToTab('tab-os'); return; }
+}
+
+var _pendPanelOpen = false;
+function toggleTopbarPendencias(e) {
+  if (e) e.stopPropagation();
+  var panel = g('topbar-pend-panel');
+  if (!panel) return;
+  _pendPanelOpen = !_pendPanelOpen;
+  panel.style.display = _pendPanelOpen ? '' : 'none';
+}
+document.addEventListener('click', function(e) {
+  var btn = g('topbar-pend-btn');
+  if (_pendPanelOpen && btn && !btn.contains(e.target)) toggleTopbarPendencias();
+});
+
 function updateTopbarOrcBadge() {
   var pendentes = (DB.orcamentos || []).filter(function(o) { return o.status === 'aguardando'; });
-  var badge = g('topbar-orc-badge');
-  var count = g('topbar-orc-count');
   var canApprove = currentUser && (currentUser.perfil === 'admin' || currentUser.perfil === 'gerente');
-  if (badge) {
-    if (canApprove && pendentes.length > 0) {
-      badge.style.display = 'flex';
-      if (count) count.textContent = pendentes.length;
-    } else {
-      badge.style.display = 'none';
-    }
-  }
+  _pendenciasInfo.orc.count = canApprove ? pendentes.length : 0;
+  renderTopbarPendencias();
 }
 
-// Badge de orçamentos aguardando ENVIO ao cliente ('liberado') — visível
-// pra TODO MUNDO, sem restrição de perfil, já que quem precisa agir é
-// normalmente quem criou o orçamento, não necessariamente admin/gerente.
+// Pendência de orçamentos aguardando ENVIO ao cliente ('liberado') —
+// visível pra TODO MUNDO, sem restrição de perfil, já que quem precisa
+// agir é normalmente quem criou o orçamento, não necessariamente admin/gerente.
 function updateTopbarEnvioBadge() {
   var pendentes = (DB.orcamentos || []).filter(function(o) { return o.status === 'liberado'; });
-  var badge = g('topbar-envio-badge');
-  var count = g('topbar-envio-count');
-  if (badge) {
-    if (pendentes.length > 0) {
-      badge.style.display = 'flex';
-      if (count) count.textContent = pendentes.length;
-    } else {
-      badge.style.display = 'none';
-    }
-  }
+  _pendenciasInfo.envio.count = pendentes.length;
+  renderTopbarPendencias();
 }
 
-// Badge de solicitações de orçamento pendentes — visível pra TODO MUNDO
-// (sem restrição de perfil), diferente do badge de aprovação: qualquer
+// Pendência de solicitações de orçamento — visível pra TODO MUNDO
+// (sem restrição de perfil), diferente da de aprovação: qualquer
 // pessoa pode precisar ver que chegou uma solicitação nova e construir o
 // orçamento a partir dela, então o aviso não deve ficar escondido de
 // ninguém.
 function updateTopbarSolBadge() {
   var pendentes = (DB.solicitacoesOrc || []).filter(function(s) { return s.status === 'pendente'; });
-  var badge = g('topbar-sol-badge');
-  var count = g('topbar-sol-count');
-  if (badge) {
-    if (pendentes.length > 0) {
-      badge.style.display = 'flex';
-      if (count) count.textContent = pendentes.length;
-    } else {
-      badge.style.display = 'none';
-    }
-  }
+  _pendenciasInfo.sol.count = pendentes.length;
+  renderTopbarPendencias();
 }
 
-// Badges da cadeia RC -> PC -> recebimento e OS -> faturamento. Visíveis
-// pra todo mundo (sem restrição de perfil), já que quem precisa agir em
-// cada etapa varia (compras, engenharia, financeiro).
+// Pendências da cadeia RC -> PC -> recebimento e OS -> faturamento.
+// Visíveis pra todo mundo (sem restrição de perfil), já que quem precisa
+// agir em cada etapa varia (compras, engenharia, financeiro).
 function updateTopbarRCPCBadge() {
   var pendentes = (DB.requisicoes || []).filter(function(r) { return r.status === 'aprovada'; });
-  var badge = g('topbar-rcpc-badge');
-  var count = g('topbar-rcpc-count');
-  if (badge) {
-    if (pendentes.length > 0) { badge.style.display = 'flex'; if (count) count.textContent = pendentes.length; }
-    else { badge.style.display = 'none'; }
-  }
+  _pendenciasInfo.rcpc.count = pendentes.length;
+  renderTopbarPendencias();
 }
 
 function updateTopbarPCRecebBadge() {
@@ -20864,33 +20901,21 @@ function updateTopbarPCRecebBadge() {
     var s = pc.status || '';
     return s !== 'Recebido' && s !== 'Recebido com divergência' && s !== 'Cancelado';
   });
-  var badge = g('topbar-pcreceb-badge');
-  var count = g('topbar-pcreceb-count');
-  if (badge) {
-    if (pendentes.length > 0) { badge.style.display = 'flex'; if (count) count.textContent = pendentes.length; }
-    else { badge.style.display = 'none'; }
-  }
+  _pendenciasInfo.pcreceb.count = pendentes.length;
+  renderTopbarPendencias();
 }
 
 function updateTopbarOSAguardBadge() {
   var statusAguardando = ['Aguardando Engenharia', 'Aguardando Compra', 'Aguardando Material'];
   var pendentes = (DB.ordens || []).filter(function(o) { return statusAguardando.indexOf(o.status) >= 0; });
-  var badge = g('topbar-osaguard-badge');
-  var count = g('topbar-osaguard-count');
-  if (badge) {
-    if (pendentes.length > 0) { badge.style.display = 'flex'; if (count) count.textContent = pendentes.length; }
-    else { badge.style.display = 'none'; }
-  }
+  _pendenciasInfo.osaguard.count = pendentes.length;
+  renderTopbarPendencias();
 }
 
 function updateTopbarOSFatBadge() {
   var pendentes = (DB.ordens || []).filter(function(o) { return o.status === 'Concluída' || o.status === 'Entregue'; });
-  var badge = g('topbar-osfat-badge');
-  var count = g('topbar-osfat-count');
-  if (badge) {
-    if (pendentes.length > 0) { badge.style.display = 'flex'; if (count) count.textContent = pendentes.length; }
-    else { badge.style.display = 'none'; }
-  }
+  _pendenciasInfo.osfat.count = pendentes.length;
+  renderTopbarPendencias();
 }
 
 function updateTopbarCadeiaBadges() {
@@ -21520,17 +21545,9 @@ function converterRCemPC(rcId) {
 // ---- TOPBAR BADGE ----
 function updateTopbarRCBadge() {
   var pendentes = (DB.requisicoes || []).filter(function(r) { return r.status === 'aguardando'; });
-  var badge = g('topbar-rc-badge');
-  var count = g('topbar-rc-count');
   var canApprove = currentUser && (currentUser.perfil === 'admin' || currentUser.perfil === 'gerente');
-  if (badge) {
-    if (canApprove && pendentes.length > 0) {
-      badge.style.display = 'flex';
-      if (count) count.textContent = pendentes.length;
-    } else {
-      badge.style.display = 'none';
-    }
-  }
+  _pendenciasInfo.rc.count = canApprove ? pendentes.length : 0;
+  renderTopbarPendencias();
   updateTopbarAlerts();
 }
 
