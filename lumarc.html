@@ -14613,7 +14613,11 @@ function saveCompra() {
 function deleteCompra(i) {
   if (!confirm(`Remover pedido ${DB.pedidosCompra[i]?.num}?`)) return;
   var item = DB.pedidosCompra[i];
-  if (item && item.id) registrarTombstone(item.id);
+  // A sincronização mescla Pedidos de Compra pelo NÚMERO (não pelo ID —
+  // muitos pedidos criados a partir de uma RC nem têm ID). A lápide
+  // precisa usar essa mesma chave, senão a exclusão nunca é respeitada na
+  // sincronização e o pedido "ressuscita" sozinho.
+  if (item && item.num) registrarTombstone(item.num);
   DB.pedidosCompra.splice(i,1);
   saveAll(true); renderComprasTable();
 }
@@ -16646,7 +16650,7 @@ const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
 // automaticamente e sem precisar rodar nada no console, quando o
 // computador está rodando uma cópia desatualizada (ex: atualizar.py falhou
 // silenciosamente, ou o usuário esqueceu de rodar o updater).
-const APP_BUILD_VERSION = '2026-07-30T16:00:00Z';
+const APP_BUILD_VERSION = '2026-07-30T16:20:00Z';
 
 // Compara esta build com o commit mais recente publicado no GitHub. Só
 // acende o aviso se o remoto for pelo menos 30 minutos mais novo (evita
