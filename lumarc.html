@@ -1006,6 +1006,18 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
     <div id="topbar-sol-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(234,179,8,.25);color:#FDE68A;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-solicitacoes')" title="Solicitações de orçamento pendentes">
       🗒️ <span id="topbar-sol-count">0</span> solicitação(ões) pendente(s)
     </div>
+    <div id="topbar-rcpc-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(249,115,22,.25);color:#FDBA74;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-rc')" title="RC's aprovadas aguardando virar Pedido de Compra">
+      🛒 <span id="topbar-rcpc-count">0</span> RC(s) aguardando PC
+    </div>
+    <div id="topbar-pcreceb-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(59,130,246,.25);color:#93C5FD;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-compras')" title="Pedidos de Compra aguardando recebimento físico">
+      📦 <span id="topbar-pcreceb-count">0</span> PC(s) aguardando recebimento
+    </div>
+    <div id="topbar-osaguard-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(124,58,237,.25);color:#C4B5FD;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-os')" title="OS aguardando ação de Engenharia, Compras ou Material">
+      🔧 <span id="topbar-osaguard-count">0</span> OS aguardando ação
+    </div>
+    <div id="topbar-osfat-badge" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(20,184,166,.25);color:#5EEAD4;font-size:11px;font-weight:700;cursor:pointer" onclick="goToTab('tab-os')" title="OS concluída/entregue aguardando faturamento">
+      🧾 <span id="topbar-osfat-count">0</span> OS p/ faturar
+    </div>
     <div id="topbar-versao-antiga" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;background:rgba(239,68,68,.35);color:#FECACA;font-size:11px;font-weight:700;cursor:help;animation:pulse-versao 2s infinite" title="Feche TODAS as janelas do sistema e rode o ERP_LUMARC.bat de novo pra atualizar">
       ⚠️ Versão desatualizada — feche tudo e reabra
     </div>
@@ -11451,6 +11463,7 @@ function saveOS() {
   closeModal('modal-os');
   saveAll(true);
   renderOSTab();
+  updateTopbarCadeiaBadges();
   showToast(`✅ OS ${num} salva!`);
 }
 
@@ -16540,7 +16553,7 @@ const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
 // automaticamente e sem precisar rodar nada no console, quando o
 // computador está rodando uma cópia desatualizada (ex: atualizar.py falhou
 // silenciosamente, ou o usuário esqueceu de rodar o updater).
-const APP_BUILD_VERSION = '2026-07-30T14:30:00Z';
+const APP_BUILD_VERSION = '2026-07-30T15:15:00Z';
 
 // Compara esta build com o commit mais recente publicado no GitHub. Só
 // acende o aviso se o remoto for pelo menos 30 minutos mais novo (evita
@@ -17660,10 +17673,11 @@ async function cloudPollSilent() {
     // Re-render active tab
     renderAfterSync(false);
         updateTopbarAlerts && updateTopbarAlerts();
-        updateTopbarRCBadge && updateTopbarRCBadge();
+        updateTopbarRCBadge && updateTopbarRCBadge(); updateTopbarCadeiaBadges && updateTopbarCadeiaBadges();
         updateTopbarOrcBadge && updateTopbarOrcBadge();
         updateTopbarEnvioBadge && updateTopbarEnvioBadge();
         updateTopbarSolBadge && updateTopbarSolBadge();
+        updateTopbarCadeiaBadges && updateTopbarCadeiaBadges();
 
   } catch(e) {
     // falha silenciosa — não interrompe o usuário
@@ -18858,6 +18872,7 @@ function limparDuplicatasFolha() {
   _bootSeguro(updateTopbarOrcBadge, 'updateTopbarOrcBadge');
   _bootSeguro(updateTopbarEnvioBadge, 'updateTopbarEnvioBadge');
   _bootSeguro(updateTopbarSolBadge, 'updateTopbarSolBadge');
+  _bootSeguro(updateTopbarCadeiaBadges, 'updateTopbarCadeiaBadges');
   _bootSeguro(verificarVersaoAtualizada, 'verificarVersaoAtualizada');
   setInterval(function() { _bootSeguro(verificarVersaoAtualizada, 'verificarVersaoAtualizada'); }, 10 * 60 * 1000);
 }
@@ -20734,6 +20749,60 @@ function updateTopbarSolBadge() {
   }
 }
 
+// Badges da cadeia RC -> PC -> recebimento e OS -> faturamento. Visíveis
+// pra todo mundo (sem restrição de perfil), já que quem precisa agir em
+// cada etapa varia (compras, engenharia, financeiro).
+function updateTopbarRCPCBadge() {
+  var pendentes = (DB.requisicoes || []).filter(function(r) { return r.status === 'aprovada'; });
+  var badge = g('topbar-rcpc-badge');
+  var count = g('topbar-rcpc-count');
+  if (badge) {
+    if (pendentes.length > 0) { badge.style.display = 'flex'; if (count) count.textContent = pendentes.length; }
+    else { badge.style.display = 'none'; }
+  }
+}
+
+function updateTopbarPCRecebBadge() {
+  var pendentes = (DB.pedidosCompra || []).filter(function(pc) {
+    var s = pc.status || '';
+    return s !== 'Recebido' && s !== 'Recebido com divergência' && s !== 'Cancelado';
+  });
+  var badge = g('topbar-pcreceb-badge');
+  var count = g('topbar-pcreceb-count');
+  if (badge) {
+    if (pendentes.length > 0) { badge.style.display = 'flex'; if (count) count.textContent = pendentes.length; }
+    else { badge.style.display = 'none'; }
+  }
+}
+
+function updateTopbarOSAguardBadge() {
+  var statusAguardando = ['Aguardando Engenharia', 'Aguardando Compra', 'Aguardando Material'];
+  var pendentes = (DB.ordens || []).filter(function(o) { return statusAguardando.indexOf(o.status) >= 0; });
+  var badge = g('topbar-osaguard-badge');
+  var count = g('topbar-osaguard-count');
+  if (badge) {
+    if (pendentes.length > 0) { badge.style.display = 'flex'; if (count) count.textContent = pendentes.length; }
+    else { badge.style.display = 'none'; }
+  }
+}
+
+function updateTopbarOSFatBadge() {
+  var pendentes = (DB.ordens || []).filter(function(o) { return o.status === 'Concluída' || o.status === 'Entregue'; });
+  var badge = g('topbar-osfat-badge');
+  var count = g('topbar-osfat-count');
+  if (badge) {
+    if (pendentes.length > 0) { badge.style.display = 'flex'; if (count) count.textContent = pendentes.length; }
+    else { badge.style.display = 'none'; }
+  }
+}
+
+function updateTopbarCadeiaBadges() {
+  updateTopbarRCPCBadge();
+  updateTopbarPCRecebBadge();
+  updateTopbarOSAguardBadge();
+  updateTopbarOSFatBadge();
+}
+
 function aprovarOrcamentoRapido(id) {
   var orc = (DB.orcamentos || []).find(function(o) { return o.id === id; });
   if (!orc) return;
@@ -21168,7 +21237,7 @@ function saveRC() {
   closeModal('modal-rc');
   showToast('RC salva como rascunho.');
   renderRCTab();
-  updateTopbarRCBadge();
+  updateTopbarRCBadge(); updateTopbarCadeiaBadges();
 }
 
 // ---- ENVIAR PARA APROVAÇÃO ----
@@ -21180,7 +21249,7 @@ function salvarRCComoAguardando() {
   closeModal('modal-rc');
   showToast('📨 RC enviada para aprovação!');
   renderRCTab();
-  updateTopbarRCBadge();
+  updateTopbarRCBadge(); updateTopbarCadeiaBadges();
 }
 
 function _persistRC(status, histAcao) {
@@ -21248,7 +21317,7 @@ function aprovarRC() {
   closeModal('modal-rc');
   showToast('✅ RC ' + rc.num + ' aprovada!');
   renderRCTab();
-  updateTopbarRCBadge();
+  updateTopbarRCBadge(); updateTopbarCadeiaBadges();
 }
 
 // ---- REPROVAR ----
@@ -21268,7 +21337,7 @@ function reprovarRC() {
   closeModal('modal-rc');
   showToast('❌ RC reprovada.');
   renderRCTab();
-  updateTopbarRCBadge();
+  updateTopbarRCBadge(); updateTopbarCadeiaBadges();
 }
 
 // ---- CONVERTER EM PC ----
@@ -21713,7 +21782,7 @@ function renderRCTab() {
     }
   }
 
-  updateTopbarRCBadge();
+  updateTopbarRCBadge(); updateTopbarCadeiaBadges();
 
   // Filter
   var filtered = rcs.filter(function(rc) {
@@ -21795,7 +21864,7 @@ function aprovacaoRapida(rcId, aprovar) {
   rc.historico.push({ data:now, acao: aprovar ? 'Aprovada' : 'Reprovada', obs:'Aprovação rápida', user: currentUser ? currentUser.nome : '' });
   saveAll(true);
   renderRCTab();
-  updateTopbarRCBadge();
+  updateTopbarRCBadge(); updateTopbarCadeiaBadges();
   showToast(aprovar ? '✅ RC aprovada!' : '❌ RC reprovada.');
 }
 
@@ -21810,7 +21879,7 @@ function aprovacaoRapidaDialog(rcId) {
   rc.obsAprovador = motivo; rc.updatedAt = now;
   rc.historico = rc.historico || [];
   rc.historico.push({ data:now, acao:'Reprovada', obs:motivo, user: currentUser ? currentUser.nome : '' });
-  saveAll(true); renderRCTab(); updateTopbarRCBadge();
+  saveAll(true); renderRCTab(); updateTopbarRCBadge(); updateTopbarCadeiaBadges();
   showToast('❌ RC reprovada.');
 }
 
@@ -24726,10 +24795,10 @@ function forcarSyncRC() {
   // Força pull imediato e re-renderiza RC tab
   cloudPull(true).then(function() {
     renderRCTab && renderRCTab();
-    updateTopbarRCBadge && updateTopbarRCBadge();
+    updateTopbarRCBadge && updateTopbarRCBadge(); updateTopbarCadeiaBadges && updateTopbarCadeiaBadges();
   }).catch(function() {
     renderRCTab && renderRCTab();
-    updateTopbarRCBadge && updateTopbarRCBadge();
+    updateTopbarRCBadge && updateTopbarRCBadge(); updateTopbarCadeiaBadges && updateTopbarCadeiaBadges();
   });
 }
 
@@ -25385,6 +25454,7 @@ function confirmarRecebimento(completo) {
   saveAll(true);
   closeModal('modal-recebimento');
   renderRecebimento();
+  updateTopbarCadeiaBadges();
 
   // Refresh other tabs
   if (typeof renderPagarTable     === 'function') renderPagarTable();
@@ -26022,6 +26092,7 @@ function confirmarAlmRecebimento(completo) {
   }
 
   saveAll(true);
+  updateTopbarCadeiaBadges();
 
   // Reset and go back to step 1
   _almRecPCIdx = -1; _almRecXMLParsed = null;
@@ -28901,51 +28972,6 @@ function buildAllAlerts() {
       (currentUser.perfil==='admin'||currentUser.perfil==='gerente')) {
     alertas.push({icon:'📝', titulo:rcPend.length+' RC aguardando aprovação',
       desc:'Requisições de compra pendentes', link:'tab-rc'});
-  }
-
-  // RC já aprovada mas ainda não virou Pedido de Compra — sem isso, uma
-  // vez aprovada, só verbal/lembrança avisava que faltava efetivamente
-  // fazer a compra.
-  var rcAprovSemPC = (DB.requisicoes||[]).filter(function(r){ return r.status==='aprovada'; });
-  if (rcAprovSemPC.length > 0) {
-    alertas.push({icon:'🛒', titulo:rcAprovSemPC.length+' RC aprovada(s) aguardando Pedido de Compra',
-      desc:'Requisições já aprovadas, ainda sem PC gerado', link:'tab-rc'});
-  }
-
-  // Pedido de Compra pendente de recebimento físico
-  var pcPendRecebimento = (DB.pedidosCompra||[]).filter(function(pc){
-    var s = pc.status||'';
-    return s!=='Recebido' && s!=='Recebido com divergência' && s!=='Cancelado';
-  });
-  if (pcPendRecebimento.length > 0) {
-    alertas.push({icon:'📦', titulo:pcPendRecebimento.length+' Pedido(s) de Compra aguardando recebimento',
-      desc:'Ainda não deram entrada física no estoque', link:'tab-compras'});
-  }
-
-  // OS paradas aguardando ação de Engenharia, Compras ou Material — o
-  // lembrete pedido explicitamente: sem isso, só quem for conferir a
-  // lista (ou for avisado verbalmente) sabe que há OS esperando alguém
-  // agir, até chegar em Produção.
-  var osAguardando = { 'Aguardando Engenharia':[], 'Aguardando Compra':[], 'Aguardando Material':[] };
-  (DB.ordens||[]).forEach(function(o){
-    if (osAguardando[o.status]) osAguardando[o.status].push(o);
-  });
-  Object.keys(osAguardando).forEach(function(st) {
-    var lista = osAguardando[st];
-    if (lista.length > 0) {
-      alertas.push({icon:'🔧', titulo:lista.length+' OS em "'+st+'"',
-        desc:lista.slice(0,3).map(function(o){return o.num;}).join(', ') + (lista.length>3?'...':''), link:'tab-os'});
-    }
-  });
-
-  // OS concluída/entregue mas ainda não faturada — fecha a ponta que falta
-  // pra chegar no financeiro (contas a receber).
-  var osNaoFaturada = (DB.ordens||[]).filter(function(o){
-    return (o.status==='Concluída' || o.status==='Entregue');
-  });
-  if (osNaoFaturada.length > 0) {
-    alertas.push({icon:'🧾', titulo:osNaoFaturada.length+' OS pendente(s) de faturamento',
-      desc:osNaoFaturada.slice(0,3).map(function(o){return o.num;}).join(', ') + (osNaoFaturada.length>3?'...':''), link:'tab-os'});
   }
 
   // Orçamentos aprovados internamente ('liberado') há mais de 48h sem
