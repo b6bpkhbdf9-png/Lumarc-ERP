@@ -920,6 +920,10 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 .xml-match-div{ background:#FFF7ED; border-left:3px solid var(--orange); }
 .xml-match-new{ background:#EFF6FF; border-left:3px solid #2563EB; }
 </style>
+<!-- SheetJS (XLSX) — necessária pra exportar/importar planilhas Excel. Nunca
+     tinha sido incluída antes, por isso os botões de exportar Excel sempre
+     falhavam silenciosamente ("Biblioteca XLSX não carregada"). -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -5281,6 +5285,8 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
   <button class="btn btn-primary" onclick="exportPropostaComercial()" title="Proposta limpa para envio ao cliente — sem custos internos">📋 Proposta</button>
   <button class="btn btn-green" onclick="exportPDF()">📄 PDF técnico</button>
   <button class="btn btn-primary" onclick="exportExcel()">📊 Excel</button>
+  <button class="btn btn-ghost" onclick="triggerImportOrcExcel()" title="Importa itens (descrição, tipo, qtd, un) de uma planilha exportada por este sistema">📥 Importar Excel</button>
+  <input type="file" id="import-orc-excel-input" accept=".xlsx,.xls" style="display:none" onchange="importOrcExcel(event)">
   <button class="btn btn-ghost" onclick="window.print()">🖨️ Imprimir</button>
   <div style="margin-left:auto;display:flex;gap:7px;flex-wrap:wrap">
     <button class="btn btn-orange" onclick="gerarDocumentosOrc()" title="Gera OS para serviços e Pedido de Venda para produtos">🔧 Gerar OS / PV</button>
@@ -16269,6 +16275,74 @@ async function exportPDF() {
   setTimeout(()=>w.print(), 700);
 }
 
+// Dispara a seleção de arquivo pra importar uma planilha Excel de volta
+// pro orçamento.
+function triggerImportOrcExcel() {
+  if (typeof XLSX === 'undefined') { showToast('Biblioteca XLSX não carregada','err'); return; }
+  g('import-orc-excel-input').click();
+}
+
+// Lê a aba "Resumo" da planilha exportada e reconstrói a lista de itens
+// (descrição, tipo, quantidade, unidade). Os custos detalhados (material,
+// mão de obra, máquina) de cada item NÃO são reconstruídos automaticamente
+// — eles dependem de vínculos com o catálogo atual (funcionários, máquinas
+// cadastradas) que não dá pra reconstruir com segurança a partir de texto
+// solto na planilha. O usuário reinsere esses componentes por item depois
+// de importar, com a estrutura básica já pronta.
+function importOrcExcel(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const wsResumo = wb.Sheets['Resumo'];
+      if (!wsResumo) { showToast('Planilha sem aba "Resumo" — não é um arquivo exportado pelo sistema?', 'err'); return; }
+      const rows = XLSX.utils.sheet_to_json(wsResumo, { header: 1 });
+
+      // Encontra a linha de cabeçalho ('#','Descrição','Tipo',...) e lê os
+      // itens logo abaixo, parando na primeira linha vazia ou na linha TOTAL.
+      const headerIdx = rows.findIndex(r => r && r[0] === '#' && r[1] === 'Descrição');
+      if (headerIdx === -1) { showToast('Não foi possível encontrar a tabela de itens na planilha.', 'err'); return; }
+
+      const tipoPorLabel = {};
+      Object.keys(ITEM_TIPO).forEach(k => { tipoPorLabel[ITEM_TIPO[k].label] = k; });
+
+      const itensImportados = [];
+      for (let i = headerIdx + 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r || !r[1]) break; // linha vazia = fim da tabela de itens
+        itensImportados.push({
+          desc: String(r[1] || ''),
+          tipo: tipoPorLabel[r[2]] || 'servico',
+          qtd:  parseFloat(r[3]) || 1,
+          un:   String(r[4] || 'PC'),
+        });
+      }
+      if (!itensImportados.length) { showToast('Nenhum item encontrado na planilha.', 'warn'); return; }
+
+      if (orcItems.length && !confirm(`Importar ${itensImportados.length} item(ns)? Isso será adicionado aos ${orcItems.length} item(ns) já existentes neste orçamento (nada será apagado).`)) return;
+
+      itensImportados.forEach(imp => {
+        addItemOrc();
+        const novo = orcItems[orcItems.length - 1];
+        novo.desc = imp.desc;
+        novo.tipo = imp.tipo;
+        novo.qtd  = imp.qtd;
+        novo.un   = imp.un;
+        renderItemCard(novo, false);
+      });
+      recalcAllItems();
+      showToast(`✅ ${itensImportados.length} item(ns) importado(s)! Adicione material/mão de obra/máquina em cada um pra completar o custo.`);
+    } catch (err) {
+      console.error('[Importar Excel]', err);
+      showToast('Erro ao ler a planilha: ' + err.message, 'err');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  event.target.value = '';
+}
+
 function exportExcel() {
   if (typeof XLSX === 'undefined') { showToast('Biblioteca XLSX não carregada','err'); return; }
   if (!orcItems.length) { showToast('Adicione itens ao orçamento antes de exportar.','warn'); return; }
@@ -16657,7 +16731,7 @@ const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
 // sessões de trabalho longas), mas ainda capaz de pegar desatualização de
 // verdade, que nos casos reais já vistos sempre foi de dias, nunca só
 // poucas horas.
-const APP_BUILD_VERSION = '2026-07-31T15:30:00Z';
+const APP_BUILD_VERSION = '2026-07-31T18:00:00Z';
 
 // Compara esta build com o commit mais recente publicado no GitHub. Só
 // acende o aviso se o remoto for pelo menos 3 horas mais novo. Falha
