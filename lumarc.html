@@ -16644,18 +16644,23 @@ const JSONBIN_API_KEY = '$2a$10$ppAAInu8Ex1sy04Ji1FKX.FARP8uXRFe2cxRc5pZpbMe2a5t
 const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
 
 // ── DETECÇÃO DE VERSÃO DESATUALIZADA ────────────────────────────────────────
-// Data/hora deste envio específico do código — atualizada a cada mudança
-// publicada. Comparada com o commit mais recente do GitHub pra avisar,
-// automaticamente e sem precisar rodar nada no console, quando o
-// computador está rodando uma cópia desatualizada (ex: atualizar.py falhou
-// silenciosamente, ou o usuário esqueceu de rodar o updater).
-const APP_BUILD_VERSION = '2026-07-30T17:45:00Z';
+// Identificador exato (SHA) do commit em que este arquivo foi publicado —
+// atualizado a cada envio, sempre com o SHA verdadeiro do próprio commit
+// (não uma data estimada). Comparado com o commit mais recente do GitHub
+// pra avisar, automaticamente e sem precisar rodar nada no console, quando
+// o computador está rodando uma cópia desatualizada (ex: atualizar.py
+// falhou silenciosamente, ou o usuário esqueceu de rodar o updater).
+//
+// Por que SHA e não mais data/hora: a versão anterior comparava por data,
+// mas exigia estimar manualmente "que horas serão quando esse envio for
+// publicado" — qualquer folga nesse processo (mesmo de só alguns minutos,
+// ou em sessões mais longas, de horas) disparava o aviso à toa numa
+// máquina que já estava atualizada. Comparação por SHA é exata: ou é o
+// mesmo commit, ou não é — nunca dá margem pra falso positivo.
+const APP_BUILD_SHA = 'PENDENTE_SUBSTITUIR_APOS_PUSH';
 
-// Compara esta build com o commit mais recente publicado no GitHub. Só
-// acende o aviso se o remoto for pelo menos 30 minutos mais novo (evita
-// falso positivo por causa de pequenas diferenças no instante em que a
-// constante foi definida vs. o commit real — o processo de testar antes
-// de publicar naturalmente cria alguns minutos de defasagem). Falha
+// Compara o SHA desta build com o commit mais recente publicado no
+// GitHub. Só acende o aviso se forem realmente diferentes. Falha
 // silenciosamente em caso de erro de rede/API — nunca mostra aviso
 // "desatualizado" só porque a própria checagem falhou.
 async function verificarVersaoAtualizada() {
@@ -16663,13 +16668,11 @@ async function verificarVersaoAtualizada() {
     const resp = await fetch('https://api.github.com/repos/b6bpkhbdf9-png/Lumarc-ERP/commits/main');
     if (!resp.ok) return;
     const data = await resp.json();
-    const dataCommitRemoto = data.commit && data.commit.committer && data.commit.committer.date;
-    if (!dataCommitRemoto) return;
-    const remotoTime = new Date(dataCommitRemoto).getTime();
-    const localTime = new Date(APP_BUILD_VERSION).getTime();
+    const shaRemoto = data.sha;
+    if (!shaRemoto) return;
     const banner = g('topbar-versao-antiga');
     if (banner) {
-      banner.style.display = (remotoTime - localTime > 30 * 60 * 1000) ? 'flex' : 'none';
+      banner.style.display = (APP_BUILD_SHA !== 'PENDENTE_SUBSTITUIR_APOS_PUSH' && shaRemoto !== APP_BUILD_SHA) ? 'flex' : 'none';
     }
   } catch (e) {
     console.warn('[Versão] Falha ao verificar versão mais recente (não gera aviso):', e.message);
