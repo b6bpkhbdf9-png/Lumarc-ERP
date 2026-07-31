@@ -9455,7 +9455,7 @@ function applyLoadedData(save, skipOrcData) {
     if (tnEl && (save.config.fantasia || save.config.empresa)) {
       tnEl.textContent = save.config.fantasia || save.config.empresa;
     }
-    if (save.config.logoData && !companyLogo) {
+    if (save.config.logoData && save.config.logoData !== companyLogo) {
       companyLogo = save.config.logoData;
       if (typeof applyLogo === 'function') applyLogo();
     }
@@ -16828,7 +16828,7 @@ const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
 // sessões de trabalho longas), mas ainda capaz de pegar desatualização de
 // verdade, que nos casos reais já vistos sempre foi de dias, nunca só
 // poucas horas.
-const APP_BUILD_VERSION = '2026-07-31T21:00:00Z';
+const APP_BUILD_VERSION = '2026-07-31T22:00:00Z';
 
 // Compara esta build com o commit mais recente publicado no GitHub. Só
 // acende o aviso se o remoto for pelo menos 3 horas mais novo. Falha
