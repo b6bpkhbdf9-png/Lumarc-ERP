@@ -8957,7 +8957,7 @@ function confirmarGerarDocumentosOrc() {
       distTravada,
       nfRemessaNum: nfRemessaNum,
       nfRemessaItem: itemNums[_idxGlobal++] || '',
-      criadoEm: new Date().toLocaleString('pt-BR')
+      criadoEm: new Date().toLocaleString('pt-BR'), _updatedAt: new Date().toISOString()
     });
   });
 
@@ -8986,7 +8986,7 @@ function confirmarGerarDocumentosOrc() {
       distTravada,
       nfRemessaNum: nfRemessaNum,
       nfRemessaItem: itemNums[_idxGlobal++] || '',
-      criadoEm: new Date().toLocaleString('pt-BR')
+      criadoEm: new Date().toLocaleString('pt-BR'), _updatedAt: new Date().toISOString()
     });
   });
 
@@ -11553,6 +11553,7 @@ function saveOS() {
     nfRemessaItem: g('mos-nfr-item')?.value || '',
     tipoOrc:    (orcItems[0]?.tipo || 'servico')  || 'servico',
     criadoEm: DB.editOSIdx >= 0 ? DB.ordens[DB.editOSIdx].criadoEm : now,
+    _updatedAt: new Date().toISOString(),
   };
 
   if (DB.editOSIdx >= 0) DB.ordens[DB.editOSIdx] = os;
@@ -16731,7 +16732,7 @@ const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
 // sessões de trabalho longas), mas ainda capaz de pegar desatualização de
 // verdade, que nos casos reais já vistos sempre foi de dias, nunca só
 // poucas horas.
-const APP_BUILD_VERSION = '2026-07-31T18:00:00Z';
+const APP_BUILD_VERSION = '2026-07-31T19:00:00Z';
 
 // Compara esta build com o commit mais recente publicado no GitHub. Só
 // acende o aviso se o remoto for pelo menos 3 horas mais novo. Falha
@@ -17221,6 +17222,55 @@ function backfillUpdatedAtOrcamentos() {
     saveAll(true);
   }
   localStorage.setItem('lumarc_backfill_updatedat_v2_done', '1');
+}
+
+// Mesma correção aplicada a Pedidos de Compra e Ordens de Serviço — os
+// dois cadastros nunca tinham recebido essa proteção antes, e por isso
+// vinham acumulando registros "sem data confiável" (que sempre perdem
+// qualquer comparação de sincronização por engano, mesmo quando são o
+// estado mais atual de verdade).
+function backfillUpdatedAtPCeOS() {
+  if (localStorage.getItem('lumarc_backfill_pcos_v1_done')) return;
+  var corrigidos = 0;
+
+  (DB.ordens || []).forEach(function(o) {
+    var dataHistorico = null;
+    if (o.historico && o.historico.length) {
+      dataHistorico = _parseDataBR(o.historico[o.historico.length - 1].data);
+    }
+    if (!dataHistorico) dataHistorico = _parseDataBR(o.criadoEm);
+    if (!dataHistorico) return;
+
+    var precisaCorrigir = false;
+    if (!o._updatedAt) {
+      precisaCorrigir = true;
+    } else {
+      var atual = new Date(o._updatedAt);
+      if (!isNaN(atual.getTime()) && (atual.getTime() - dataHistorico.getTime()) > 60000) {
+        precisaCorrigir = true;
+      }
+    }
+    if (precisaCorrigir) { o._updatedAt = dataHistorico.toISOString(); corrigidos++; }
+  });
+
+  // Pedidos de Compra não têm histórico próprio — usa a data de
+  // recebimento (se já recebido), depois a data de criação, depois o
+  // campo de data do próprio pedido (formato ISO, sem ambiguidade).
+  (DB.pedidosCompra || []).forEach(function(pc) {
+    if (pc._updatedAt) return;
+    var dataBase = _parseDataBR(pc.dataRecebimento) || _parseDataBR(pc.criadoEm)
+      || (pc.data ? new Date(pc.data + 'T12:00:00') : null);
+    if (dataBase && !isNaN(dataBase.getTime())) {
+      pc._updatedAt = dataBase.toISOString();
+      corrigidos++;
+    }
+  });
+
+  if (corrigidos > 0) {
+    console.log('[Backfill PC/OS] ' + corrigidos + ' registro(s) corrigido(s).');
+    saveAll(true);
+  }
+  localStorage.setItem('lumarc_backfill_pcos_v1_done', '1');
 }
 
 // ── IDENTIFICADOR ÚNICO DE SESSÃO/MÁQUINA ───────────────────────────────
@@ -18989,6 +19039,7 @@ function limparDuplicatasFolha() {
   }
 
   _bootSeguroAposCloud(backfillUpdatedAtOrcamentos, 'backfillUpdatedAtOrcamentos');
+  _bootSeguroAposCloud(backfillUpdatedAtPCeOS, 'backfillUpdatedAtPCeOS');
   _bootSeguroAposCloud(migrarFotosParaBinSeparado, 'migrarFotosParaBinSeparado');
   _bootSeguroAposCloud(migrarStatusOrcLegado, 'migrarStatusOrcLegado');
   _bootSeguro(_iniciarRascunhoAutoSave, '_iniciarRascunhoAutoSave');
@@ -21595,6 +21646,7 @@ function converterRCemPC(rcId) {
     }),
     total:    total,
     criadoEm: now,
+    _updatedAt: new Date().toISOString(),
   };
 
   // Record price history for each item
@@ -25576,6 +25628,7 @@ function confirmarRecebimento(completo) {
   pc.status       = completo && !hasDivergencia ? 'Recebido' : 'Recebido com divergência';
   pc.dataRecebimento = dataRec;
   pc.nfRecebida   = nfNum;
+  pc._updatedAt   = new Date().toISOString();
 
   // 3. Almoxarifado entries for OK + divergence items (not reprovados)
   var now_str = now.toLocaleString('pt-BR');
@@ -26225,6 +26278,7 @@ function confirmarAlmRecebimento(completo) {
   pc.status          = completo&&!hasDivergencia?'Recebido':'Recebido com divergência';
   pc.dataRecebimento = dataRec;
   pc.nfRecebida      = nfNum;
+  pc._updatedAt      = new Date().toISOString();
 
   // 3. Almoxarifado entries
   if (!DB.almMovimentos) DB.almMovimentos=[];
@@ -26568,6 +26622,7 @@ function mudarStatusFilaProducao(osNum, novoStatus) {
   var os = (DB.ordens||[]).find(function(o){ return o.num === osNum; });
   if (!os) return;
   os.status = novoStatus;
+  os._updatedAt = new Date().toISOString();
   os.historico = os.historico || [];
   os.historico.push({ status: novoStatus, obs: 'Alterado na Fila de Produção', data: new Date().toLocaleString('pt-BR') });
 
