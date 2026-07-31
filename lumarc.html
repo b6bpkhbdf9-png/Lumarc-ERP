@@ -16649,7 +16649,7 @@ const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
 // automaticamente e sem precisar rodar nada no console, quando o
 // computador está rodando uma cópia desatualizada (ex: atualizar.py falhou
 // silenciosamente, ou o usuário esqueceu de rodar o updater).
-const APP_BUILD_VERSION = '2026-07-30T17:20:00Z';
+const APP_BUILD_VERSION = '2026-07-30T17:45:00Z';
 
 // Compara esta build com o commit mais recente publicado no GitHub. Só
 // acende o aviso se o remoto for pelo menos 30 minutos mais novo (evita
@@ -20327,6 +20327,18 @@ window.addEventListener('beforeunload', function(e) {
 // sempre atuais.
 window.addEventListener('pageshow', function(event) {
   if (event.persisted) {
+    var temFotoPendente = typeof _fotosPendentes !== 'undefined' && Object.keys(_fotosPendentes).length > 0;
+    var temEdicaoNaoSalva = typeof hasUnsavedOrc === 'function' && hasUnsavedOrc();
+    if (temFotoPendente || temEdicaoNaoSalva) {
+      // NÃO recarrega se houver algo só na memória ainda não salvo/enviado
+      // — isso já causou perda real de fotos anexadas: o recarregamento
+      // automático acontecia bem no momento em que a foto ainda estava na
+      // fila de envio, descartando o que só existia ali. Nesse caso, o
+      // aviso de 'versão desatualizada' (não destrutivo) já cobre o risco
+      // de código desatualizado, então é mais seguro esperar.
+      console.warn('[Lumarc] Página restaurada do bfcache, mas há edição/foto pendente — recarregamento automático adiado por segurança.');
+      return;
+    }
     console.warn('[Lumarc] Página restaurada do bfcache — forçando recarregamento completo para evitar código/dados desatualizados.');
     location.reload();
   }
