@@ -14724,7 +14724,10 @@ function printPedidoCompra(idx) {
     <div>
       ${getPDFLogoHTML()}
       <div class="logo-sub">${getPDFCompanyHTML().sub}</div>
-      <div style="margin-top:8px;font-size:11px;color:#64748B">Camaçari — Bahia — Brasil</div>
+      <div style="margin-top:8px;font-size:11px;color:#64748B">
+        ${getPDFCompanyHTML().end}${getPDFCompanyHTML().cnpj ? ' · CNPJ: '+getPDFCompanyHTML().cnpj : ''}<br>
+        ${[getPDFCompanyHTML().tel, getPDFCompanyHTML().email].filter(Boolean).join(' · ')}
+      </div>
     </div>
     <div class="pc-badge">
       <div style="font-size:9px;color:#94A3B8;margin-bottom:2px;letter-spacing:.08em">PEDIDO DE COMPRA</div>
@@ -14760,6 +14763,12 @@ function printPedidoCompra(idx) {
   </table>
 
   ${pc.obs?`<div class="obs-box"><strong>Instruções ao fornecedor:</strong><br>${pc.obs}</div>`:''}
+
+  <div class="obs-box" style="background:#EFF6FF;border-color:#93C5FD;color:#1E40AF">
+    <strong>Instruções para envio da Nota Fiscal:</strong><br>
+    Favor emitir a Nota Fiscal em nome de ${getPDFCompanyHTML().name}${getPDFCompanyHTML().cnpj ? ' (CNPJ '+getPDFCompanyHTML().cnpj+')' : ''}
+    e enviar${getPDFCompanyHTML().email ? ' para <strong>'+getPDFCompanyHTML().email+'</strong>' : ''}, referenciando este número de pedido (${pc.num}).
+  </div>
 
   <div class="assin">
     <div class="assin-box">Responsável pela Compra<br><br>${pc.resp||'_________________________'}</div>
@@ -15693,13 +15702,26 @@ function getPDFLogoHTML() {
     return `<img src="${companyLogo}" class="pdf-logo-img" alt="Logo">`;
   }
   const hbg = currentTheme?.hbg || '#1C2333';
-  return `<div style="font-size:22px;font-weight:800;letter-spacing:.05em;color:${hbg}">${g('pers-company-name')?.value?.split(' ')[0] || 'LUMARC'}</div>`;
+  const nomeFallback = (DB.config && (DB.config.fantasia || DB.config.empresa)) || 'LUMARC';
+  return `<div style="font-size:22px;font-weight:800;letter-spacing:.05em;color:${hbg}">${nomeFallback.split(' ')[0]}</div>`;
 }
 
+// Dados completos da empresa pra documentos gerados (Pedido de Compra, OS
+// impressa, Roteiro de Fabricação, PDF de custo interno) — antes essa
+// função lia de campos de "Personalização" que nunca tinham sido
+// preenchidos, mostrando "Sistema" (um texto genérico) no lugar do nome
+// real da empresa, e sem CNPJ/endereço/telefone/e-mail nenhum. Agora usa
+// o mesmo DB.config (Dados da Empresa) já usado corretamente na proposta
+// comercial.
 function getPDFCompanyHTML() {
-  const name = g('pers-company-name')?.value || 'LUMARC';
-  const sub = g('pers-company-sub')?.value || 'Usinagem · Caldeiraria · Manutenção · Pintura Industrial';
-  return { name, sub };
+  const cfg = DB.config || {};
+  const name = cfg.fantasia || cfg.empresa || 'LUMARC';
+  const sub  = cfg.sub || 'Usinagem · Caldeiraria · Manutenção · Pintura Industrial';
+  const end  = [cfg.end, cfg.cep ? 'CEP ' + cfg.cep : '', cfg.cidade && cfg.uf ? cfg.cidade+' / '+cfg.uf : (cfg.cidade||'')].filter(Boolean).join(' — ') || 'Camaçari — Bahia — Brasil';
+  const tel   = cfg.tel   || '';
+  const email = cfg.email || '';
+  const cnpj  = cfg.cnpj  || '';
+  return { name, sub, end, tel, email, cnpj };
 }
 
 // ============================================================
@@ -16806,7 +16828,7 @@ const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
 // sessões de trabalho longas), mas ainda capaz de pegar desatualização de
 // verdade, que nos casos reais já vistos sempre foi de dias, nunca só
 // poucas horas.
-const APP_BUILD_VERSION = '2026-07-31T20:00:00Z';
+const APP_BUILD_VERSION = '2026-07-31T21:00:00Z';
 
 // Compara esta build com o commit mais recente publicado no GitHub. Só
 // acende o aviso se o remoto for pelo menos 3 horas mais novo. Falha
