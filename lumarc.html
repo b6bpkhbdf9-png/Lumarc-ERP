@@ -10134,18 +10134,26 @@ function openMaqModal(idx) {
   g('mm-title').textContent = idx !== undefined ? 'Editar Máquina' : 'Nova Máquina';
   if (idx !== undefined) {
     const m = DB.maquinas[idx];
-    g('mm-nome').value = m.nome; g('mm-cat').value = m.cat;
-    g('mm-val').value = m.val; g('mm-vida').value = m.vida;
-    g('mm-man').value = m.man; g('mm-kw').value = m.kw;
-    g('mm-tarifa').value = m.tarifa; g('mm-hprod').value = m.hprod;
-    g('mm-status').value = m.status;
+    if (g('mm-nome'))   g('mm-nome').value = m.nome;
+    if (g('mm-cat'))    g('mm-cat').value = m.cat;
+    if (g('mm-val'))    g('mm-val').value = m.val;
+    if (g('mm-vida'))   g('mm-vida').value = m.vida;
+    if (g('mm-man'))    g('mm-man').value = m.man;
+    if (g('mm-kw'))     g('mm-kw').value = m.kw;
+    if (g('mm-tarifa')) g('mm-tarifa').value = m.tarifa;
+    if (g('mm-hprod'))  g('mm-hprod').value = m.hprod;
+    if (g('mm-status')) g('mm-status').value = m.status;
     if (g('mm-tipo-uso')) g('mm-tipo-uso').value = m.tipoUso || 'direta';
   } else {
-    g('mm-nome').value=''; g('mm-cat').value='Torneamento';
-    g('mm-val').value=0; g('mm-vida').value=10;
-    g('mm-man').value=0; g('mm-kw').value=0;
-    g('mm-tarifa').value=0.75; g('mm-hprod').value=160;
-    g('mm-status').value='ativo';
+    if (g('mm-nome'))   g('mm-nome').value = '';
+    if (g('mm-cat'))    g('mm-cat').value = 'Torneamento';
+    if (g('mm-val'))    g('mm-val').value = 0;
+    if (g('mm-vida'))   g('mm-vida').value = 10;
+    if (g('mm-man'))    g('mm-man').value = 0;
+    if (g('mm-kw'))     g('mm-kw').value = 0;
+    if (g('mm-tarifa')) g('mm-tarifa').value = 0.75;
+    if (g('mm-hprod'))  g('mm-hprod').value = 160;
+    if (g('mm-status')) g('mm-status').value = 'ativo';
     if (g('mm-tipo-uso')) g('mm-tipo-uso').value = 'direta';
   }
   calcMaqCusto();
@@ -16852,7 +16860,7 @@ const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
 // sessões de trabalho longas), mas ainda capaz de pegar desatualização de
 // verdade, que nos casos reais já vistos sempre foi de dias, nunca só
 // poucas horas.
-const APP_BUILD_VERSION = '2026-08-03T14:00:00Z';
+const APP_BUILD_VERSION = '2026-08-03T15:00:00Z';
 
 // Compara esta build com o commit mais recente publicado no GitHub. Só
 // acende o aviso se o remoto for pelo menos 3 horas mais novo. Falha
@@ -17158,8 +17166,22 @@ async function _pushFotosBin(_retryCount, _binIdx) {
       console.warn('[FotoStore] Erro de rede no push de fotos, tentando de novo (' + (_retryCount+1) + '/3):', e.message);
       setTimeout(function() { _pushFotosBin(_retryCount + 1, binIdx); }, 2000 * (_retryCount + 1));
     } else {
-      console.error('[FotoStore] Push de fotos falhou após 3 tentativas por erro de rede. Desistindo por agora:', e.message);
-      if (typeof syncLog === 'function') syncLog('❌ Envio de fotos falhou após 3 tentativas (erro de rede: ' + e.message + ').');
+      // Um erro de rede/CORS bloqueado pode na verdade ser um 413 (bin
+      // cheio) que o navegador nunca deixa o código LER de verdade — a
+      // política de CORS esconde o status real nesse caso. Depois de
+      // esgotar as tentativas neste bin, tenta o próximo bin de reserva
+      // antes de desistir de vez, cobrindo esse cenário mascarado.
+      if (_avancarFotoBinAtivo()) {
+        console.warn('[FotoStore] Bin de fotos ' + binId + ' falhou 3x por erro de rede (pode ser 413 mascarado por CORS) — tentando o próximo bin de reserva.');
+        if (typeof syncLog === 'function') syncLog('⚠️ Bin de fotos com falha persistente — tentando o próximo bin de reserva automaticamente.');
+        return _pushFotosBin(0, _getFotoBinAtivoIdx());
+      }
+      console.error('[FotoStore] Push de fotos falhou após 3 tentativas por erro de rede, em todos os bins disponíveis. Desistindo por agora:', e.message);
+      if (typeof syncLog === 'function') syncLog('❌ Envio de fotos falhou após 3 tentativas em todos os bins disponíveis (erro de rede: ' + e.message + ').');
+      if (!_avisouFotoBinCheio) {
+        _avisouFotoBinCheio = true;
+        if (typeof showToast === 'function') showToast('⚠️ Falha ao enviar fotos pra nuvem (rede ou espaço cheio) — avise o suporte se persistir.', 'warn');
+      }
     }
   }
 }
@@ -31583,6 +31605,7 @@ function baixarCombinacao(idxList) {
           <select id="mm-cat"><option value="usinagem">Usinagem</option><option value="soldagem">Soldagem</option><option value="caldeiraria">Caldeiraria</option><option value="corte">Corte</option><option value="outro">Outro</option></select>
         </div>
         <div class="form-group"><label>Valor (R$)</label><input type="number" id="mm-val" placeholder="0,00" step="0.01"></div>
+        <div class="form-group"><label>Manutenção mensal (R$)</label><input type="number" id="mm-man" placeholder="0,00" step="0.01"></div>
         <div class="form-group"><label>Potência (kW)</label><input type="number" id="mm-kw" placeholder="0" step="0.1"></div>
         <div class="form-group"><label>Horas produtivas/dia</label><input type="number" id="mm-hprod" placeholder="8" step="0.5"></div>
         <div class="form-group"><label>Vida útil (anos)</label><input type="number" id="mm-vida" placeholder="10"></div>
