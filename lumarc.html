@@ -11786,16 +11786,18 @@ function _engRenderMaquinas(itens, os) {
     var savedFerr = (ferrData[maqNome] || []);
     var maqId = maqNome.replace(/[^a-z0-9]/gi,'_');
 
-    var ferrRows = FERR_TIPOS.map(function(ft) {
-      var saved = savedFerr.find(function(f){ return f.tipo===ft.id; }) || {};
-      return '<div class="eng-ferr-row" style="background:var(--bg)">'
-        + '<span style="text-align:center">'+ft.icon+'</span>'
-        + '<span style="font-size:11px;color:var(--muted)">'+ft.label+'</span>'
-        + '<input type="text" id="ferr-'+maqId+'-'+ft.id+'" value="'+(saved.desc||'')+'" '
-        + 'placeholder="Código / descrição..." style="font-size:11px;border:1px solid var(--border);border-radius:4px;padding:3px 7px;background:var(--panel);width:100%">'
-        + '<input type="number" id="ferr-'+maqId+'-'+ft.id+'-qtd" value="'+(saved.qtd||'')+'" '
-        + 'placeholder="Qtd" min="0" style="font-size:11px;border:1px solid var(--border);border-radius:4px;padding:3px 7px;background:var(--panel);width:100%">'
-        + '<span style="font-size:16px;color:var(--muted);text-align:center">'+(saved.desc?'✅':'·')+'</span>'
+    var categoriasHTML = FERR_TIPOS.map(function(ft) {
+      var itensDaCategoria = savedFerr.filter(function(f){ return f.tipo===ft.id; });
+      if (!itensDaCategoria.length) itensDaCategoria = [{}]; // sempre pelo menos 1 linha em branco pra começar
+      var linhasHTML = itensDaCategoria.map(function(saved) {
+        return renderFerrItemRow(maqId, ft.id, saved.desc||'', saved.qtd||'');
+      }).join('');
+      return '<div class="eng-ferr-categoria" style="border-bottom:1px solid var(--border);padding:8px 0">'
+        + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+        + '<span>'+ft.icon+'</span><span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">'+ft.label+'</span>'
+        + '</div>'
+        + '<div id="ferr-list-'+maqId+'-'+ft.id+'">' + linhasHTML + '</div>'
+        + '<button class="btn btn-ghost btn-xs" onclick="addFerrRow(\''+maqId+'\',\''+ft.id+'\')" style="margin-top:4px">+ Adicionar '+ft.label+'</button>'
         + '</div>';
     }).join('');
 
@@ -11804,11 +11806,8 @@ function _engRenderMaquinas(itens, os) {
       + '<span>⚙️ <strong>'+maqNome+'</strong></span>'
       + '<span style="font-size:11px;opacity:.8">'+maq.horas+'h previstas · itens: '+maq.itens.slice(0,2).join(', ')+'</span>'
       + '</div>'
-      + '<div style="padding:8px 0">'
-      + '<div class="eng-ferr-row" style="background:var(--hbg);color:#94A3B8;font-size:10px;font-weight:700;text-transform:uppercase">'
-      + '<div></div><div>Tipo de ferramenta</div><div>Código / descrição</div><div>Qtd</div><div></div>'
-      + '</div>'
-      + ferrRows
+      + '<div style="padding:8px 14px">'
+      + categoriasHTML
       + '</div>'
       + '<div style="padding:8px 14px;border-top:1px solid var(--border)">'
       + '<input type="text" id="ferr-'+maqId+'-obs" placeholder="Observações gerais desta máquina..." '
@@ -11817,6 +11816,27 @@ function _engRenderMaquinas(itens, os) {
       + '</div>'
       + '</div>';
   }).join('');
+}
+
+// Monta uma linha editável (descrição + qtd + remover) dentro da lista de
+// uma categoria de ferramenta — cada categoria pode ter quantas linhas
+// forem necessárias (ex: 2 tipos de inserto, 3 tamanhos de broca, etc.),
+// em vez de se limitar a um único item por categoria.
+function renderFerrItemRow(maqId, tipoId, desc, qtd) {
+  return '<div class="eng-ferr-item-row" style="display:grid;grid-template-columns:1fr 90px 28px;gap:6px;margin-bottom:4px">'
+    + '<input type="text" class="ferr-item-desc" data-maqid="'+maqId+'" data-tipo="'+tipoId+'" value="'+String(desc).replace(/"/g,'&quot;')+'" '
+    + 'placeholder="Código / descrição..." style="font-size:11px;border:1px solid var(--border);border-radius:4px;padding:5px 8px;background:var(--panel);width:100%">'
+    + '<input type="number" class="ferr-item-qtd" value="'+qtd+'" min="0" '
+    + 'placeholder="Qtd" style="font-size:11px;border:1px solid var(--border);border-radius:4px;padding:5px 8px;background:var(--panel);width:100%">'
+    + '<button class="btn btn-ghost btn-xs" onclick="this.closest(\'.eng-ferr-item-row\').remove()" title="Remover esta linha" style="padding:2px">×</button>'
+    + '</div>';
+}
+
+// Adiciona uma nova linha em branco na categoria de ferramenta indicada.
+function addFerrRow(maqId, tipoId) {
+  var lista = g('ferr-list-'+maqId+'-'+tipoId);
+  if (!lista) return;
+  lista.insertAdjacentHTML('beforeend', renderFerrItemRow(maqId, tipoId, '', ''));
 }
 
 // ── ABA 3: Roteiro ────────────────────────────────────────────────────────────
@@ -12013,11 +12033,15 @@ function confirmarRevisaoEngenharia() {
     var maqId  = maqNome.replace(/[^a-z0-9]/gi,'_');
     var ferrs  = [];
     FERR_TIPOS.forEach(function(ft) {
-      var descEl = g('ferr-'+maqId+'-'+ft);
-      var qtdEl  = g('ferr-'+maqId+'-'+ft+'-qtd');
-      var desc   = descEl ? descEl.value.trim() : '';
-      var qtd    = qtdEl  ? (parseInt(qtdEl.value)||0) : 0;
-      if (desc || qtd) ferrs.push({ tipo:ft, desc:desc, qtd:qtd });
+      var lista = g('ferr-list-'+maqId+'-'+ft);
+      if (!lista) return;
+      lista.querySelectorAll('.eng-ferr-item-row').forEach(function(row) {
+        var descEl = row.querySelector('.ferr-item-desc');
+        var qtdEl  = row.querySelector('.ferr-item-qtd');
+        var desc   = descEl ? descEl.value.trim() : '';
+        var qtd    = qtdEl  ? (parseInt(qtdEl.value)||0) : 0;
+        if (desc || qtd) ferrs.push({ tipo:ft, desc:desc, qtd:qtd });
+      });
     });
     var obsEl = g('ferr-'+maqId+'-obs');
     ferramentas[maqNome] = ferrs;
@@ -16828,7 +16852,7 @@ const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
 // sessões de trabalho longas), mas ainda capaz de pegar desatualização de
 // verdade, que nos casos reais já vistos sempre foi de dias, nunca só
 // poucas horas.
-const APP_BUILD_VERSION = '2026-07-31T22:00:00Z';
+const APP_BUILD_VERSION = '2026-08-03T14:00:00Z';
 
 // Compara esta build com o commit mais recente publicado no GitHub. Só
 // acende o aviso se o remoto for pelo menos 3 horas mais novo. Falha
