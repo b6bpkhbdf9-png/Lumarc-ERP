@@ -1280,6 +1280,9 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
         <div class="form-group"><label>Telefone</label>
           <input type="text" id="mos-cli-tel">
         </div>
+        <div class="form-group"><label>E-mail do contato</label>
+          <input type="email" id="mos-cli-email" placeholder="contato@cliente.com.br">
+        </div>
       </div>
 
       <hr class="div">
@@ -1390,6 +1393,16 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
             <button class="btn btn-ghost btn-xs" id="mos-pc-remove-btn" style="display:none" onclick="event.stopPropagation();removeOSPCFile()">×</button>
           </div>
           <input type="file" id="mos-pc-file-input" accept=".pdf,image/*" style="display:none" onchange="loadOSPCFile(event)">
+        </div>
+      </div>
+
+      <div id="mos-recebimento-box" style="margin-top:10px;padding:10px 14px;border-radius:6px;background:#EFF6FF;border:1px solid #93C5FD;display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <div style="font-size:12px;color:#1E40AF">
+            <strong>📧 Confirmação de recebimento do pedido</strong>
+            <div id="mos-recebimento-status" style="margin-top:2px;color:#1E3A8A"></div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="confirmarRecebimentoPedidoOS()">✅ Confirmar e enviar e-mail</button>
         </div>
       </div>
 
@@ -11329,6 +11342,7 @@ function openOSModal(idx) {
     g('mos-cli-nome').value = os.cliNome || '';
     g('mos-cli-contato').value = os.cliContato || '';
     g('mos-cli-tel').value = os.cliTel || '';
+    if (g('mos-cli-email')) g('mos-cli-email').value = os.cliEmail || '';
     // Try to match the cliente select by name (OS gerada de orçamento não vincula ID)
     if (os.cliNome && g('mos-cli-sel')) {
       var _cliIdx = DB.clientes.findIndex(function(c) {
@@ -11366,6 +11380,7 @@ function openOSModal(idx) {
     g('mos-cli-nome').value = g('c-nome')?.value || '';
     g('mos-cli-contato').value = g('c-contato')?.value || '';
     g('mos-cli-tel').value = g('c-tel')?.value || '';
+    if (g('mos-cli-email')) g('mos-cli-email').value = g('c-email')?.value || '';
     g('mos-cat').value = (null)?.value || 'Usinagem';
     g('mos-prio').value = 'Normal';
     g('mos-prev').value = '';
@@ -11416,6 +11431,9 @@ function openOSModal(idx) {
       const removeBtn = g('mos-pc-remove-btn');
       if (nameEl) nameEl.textContent = _osPC.fileName || 'Clique para anexar PDF ou imagem';
       if (removeBtn) removeBtn.style.display = _osPC.file ? '' : 'none';
+      const recebBox = g('mos-recebimento-box');
+      if (recebBox) recebBox.style.display = _osPC.file ? 'block' : 'none';
+      atualizarStatusRecebimentoOS();
     }
   }
   renderOSFotos();
@@ -11432,6 +11450,7 @@ function onOSOrcSel() {
   if (cliNome && g('mos-cli-nome')) g('mos-cli-nome').value = cliNome;
   if (g('mos-cli-contato') && g('c-contato')) g('mos-cli-contato').value = g('c-contato').value;
   if (g('mos-cli-tel') && g('c-tel')) g('mos-cli-tel').value = g('c-tel').value;
+  if (g('mos-cli-email') && g('c-email')) g('mos-cli-email').value = g('c-email').value;
   // Total from all items
   const total = orcItems.reduce((s,it)=>s+(it.precoFinal||0),0);
   const custo = orcItems.reduce((s,it)=>s+(it.custoTotal||0),0);
@@ -11449,6 +11468,7 @@ function onOSCliSel() {
   g('mos-cli-nome').value = c.nome || '';
   g('mos-cli-contato').value = c.contato || '';
   g('mos-cli-tel').value = c.tel || '';
+  if (g('mos-cli-email')) g('mos-cli-email').value = c.email || '';
 }
 
 function calcOSMargem() {
@@ -11539,6 +11559,7 @@ function saveOS() {
     orcRef: orcNum, resp: g('mos-resp').value,
     cliNome, cliContato: g('mos-cli-contato').value,
     cliTel: g('mos-cli-tel').value,
+    cliEmail: g('mos-cli-email')?.value || '',
     cat: g('mos-cat').value, prio: g('mos-prio').value,
     prev: g('mos-prev').value, qtd: g('mos-qtd').value,
     un: g('mos-un').value, desc,
@@ -11560,6 +11581,8 @@ function saveOS() {
     nfRemessaNum:  g('mos-nfr-num')?.value  || '',
     nfRemessaItem: g('mos-nfr-item')?.value || '',
     tipoOrc:    (orcItems[0]?.tipo || 'servico')  || 'servico',
+    pcRecebidoConfirmadoEm:  DB.editOSIdx >= 0 ? DB.ordens[DB.editOSIdx].pcRecebidoConfirmadoEm  : undefined,
+    pcRecebidoConfirmadoPor: DB.editOSIdx >= 0 ? DB.ordens[DB.editOSIdx].pcRecebidoConfirmadoPor : undefined,
     criadoEm: DB.editOSIdx >= 0 ? DB.ordens[DB.editOSIdx].criadoEm : now,
     _updatedAt: new Date().toISOString(),
   };
@@ -15905,6 +15928,9 @@ function loadOSPCFile(event) {
     if (sizeEl) sizeEl.textContent = `${(file.size/1024).toFixed(0)}KB · Clique para trocar`;
     if (removeBtn) removeBtn.style.display = '';
     showToast(`📎 "${file.name}" anexado!`);
+    var box = g('mos-recebimento-box');
+    if (box) box.style.display = 'block';
+    atualizarStatusRecebimentoOS();
   }
   if (file.type === 'application/pdf') {
     const reader = new FileReader();
@@ -15924,6 +15950,71 @@ function removeOSPCFile() {
   if (nameEl) nameEl.textContent = 'Clique para anexar PDF ou imagem';
   if (sizeEl) sizeEl.textContent = 'PDF, PNG, JPG — máx. 2MB';
   if (removeBtn) removeBtn.style.display = 'none';
+  const box = g('mos-recebimento-box');
+  if (box) box.style.display = 'none';
+}
+
+// Mostra/atualiza o texto de status na caixa de confirmação de
+// recebimento — se já foi confirmado antes, mostra quem e quando.
+function atualizarStatusRecebimentoOS() {
+  var statusEl = g('mos-recebimento-status');
+  if (!statusEl) return;
+  var os = DB.editOSIdx >= 0 ? DB.ordens[DB.editOSIdx] : null;
+  if (os && os.pcRecebidoConfirmadoEm) {
+    statusEl.textContent = '✅ Confirmado por ' + (os.pcRecebidoConfirmadoPor||'—') + ' em ' + new Date(os.pcRecebidoConfirmadoEm).toLocaleString('pt-BR');
+  } else {
+    statusEl.textContent = 'Ainda não confirmado — clique pra registrar e avisar o cliente do prazo.';
+  }
+}
+
+// Registra a confirmação de recebimento do pedido (com data/hora e quem
+// confirmou — o registro em si já resolve a disputa de "quando o pedido
+// chegou", mesmo sem o e-mail ser enviado) e abre o e-mail já pronto pro
+// contato do cliente, informando o prazo de entrega definido no orçamento
+// a partir de HOJE.
+function confirmarRecebimentoPedidoOS() {
+  if (!(DB.editOSIdx >= 0)) {
+    showToast('Salve a OS primeiro (com o pedido já anexado), depois confirme o recebimento.', 'warn');
+    return;
+  }
+  var os = DB.ordens[DB.editOSIdx];
+  if (!os) return;
+  if (!_osPC.file) {
+    showToast('Anexe o arquivo do pedido do cliente antes de confirmar o recebimento.', 'warn');
+    return;
+  }
+
+  var orc = (DB.orcamentos||[]).find(function(o){ return o.num === os.orcRef; });
+  var prazo = (orc && orc.estado && orc.estado.fields) ? (orc.estado.fields['o-prazo']||'') : '';
+
+  var agora = new Date();
+  os.pcRecebidoConfirmadoEm = agora.toISOString();
+  os.pcRecebidoConfirmadoPor = currentUser ? currentUser.nome : 'Sistema';
+
+  var cfg = getPDFCompanyHTML();
+  var destinatario = (g('mos-cli-email')?.value || os.cliEmail || '').trim();
+  var contato = (g('mos-cli-contato')?.value || os.cliContato || '').trim();
+  var cliente = (g('mos-cli-nome')?.value || os.cliNome || '').trim();
+
+  var assunto = 'Confirmação de Recebimento do Pedido — OS ' + os.num + (os.nfRemessaNum ? ' (NF ' + os.nfRemessaNum + ')' : '');
+  var corpo = 'Prezado(a) ' + (contato || cliente || 'cliente') + ',\n\n'
+    + 'Confirmamos o recebimento do pedido de compra referente a "' + (os.desc||'') + '"'
+    + (os.nfRemessaNum ? (', Nota Fiscal de Remessa nº ' + os.nfRemessaNum + (os.nfRemessaItem ? ' (item ' + os.nfRemessaItem + ')' : '')) : '') + '.\n\n'
+    + (prazo ? ('Conforme o orçamento ' + (os.orcRef||'') + ', o prazo de entrega é de ' + prazo + ' a partir desta data de confirmação de recebimento (' + agora.toLocaleDateString('pt-BR') + ').\n\n') : '')
+    + 'Qualquer dúvida, estamos à disposição.\n\n'
+    + 'Atenciosamente,\n' + (cfg.name||'') + (cfg.tel ? '\n' + cfg.tel : '') + (cfg.email ? '\n' + cfg.email : '');
+
+  saveAll(true);
+  atualizarStatusRecebimentoOS();
+
+  if (!destinatario) {
+    showToast('✅ Recebimento registrado! Mas não há e-mail do contato preenchido — informe o campo "E-mail do contato" e clique de novo pra abrir o e-mail pronto.', 'warn');
+    return;
+  }
+
+  var mailto = 'mailto:' + encodeURIComponent(destinatario) + '?subject=' + encodeURIComponent(assunto) + '&body=' + encodeURIComponent(corpo);
+  window.open(mailto, '_blank');
+  showToast('✅ Recebimento registrado! Abrindo seu e-mail com a mensagem pronta — só confirmar o envio.');
 }
 
 
@@ -16860,7 +16951,7 @@ const JSONBIN_BASE   = 'https://api.jsonbin.io/v3';
 // sessões de trabalho longas), mas ainda capaz de pegar desatualização de
 // verdade, que nos casos reais já vistos sempre foi de dias, nunca só
 // poucas horas.
-const APP_BUILD_VERSION = '2026-08-03T15:00:00Z';
+const APP_BUILD_VERSION = '2026-08-03T16:00:00Z';
 
 // Compara esta build com o commit mais recente publicado no GitHub. Só
 // acende o aviso se o remoto for pelo menos 3 horas mais novo. Falha
